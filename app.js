@@ -1,33 +1,20 @@
-const STORAGE_KEY = 'myfood.records.v1';
-const records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+const records = [];
 const ingredients = [];
-
-function makeChoiceField(title, hint, id, options) {
-  return `<section class="field"><span>${title} <em>${hint}</em></span><div class="choice-grid" id="${id}">${options.split(',').map(option => `<button class="choice" type="button" data-value="${option}">${option}</button>`).join('')}</div></section>`;
-}
-
-// Expand the small declarative fields without a framework.
-document.querySelectorAll('ChoiceField').forEach(node => node.outerHTML = makeChoiceField(node.getAttribute('title'), node.getAttribute('hint'), node.getAttribute('id'), node.getAttribute('options')));
-
 const $ = selector => document.querySelector(selector);
 const selected = id => [...document.querySelectorAll(`#${id} .selected`)].map(button => button.dataset.value);
 
-function renderIngredients() {
-  $('#ingredientChips').innerHTML = ingredients.map((item, index) => `<span class="chip">${escapeHtml(item)}<button type="button" data-index="${index}" aria-label="删除${escapeHtml(item)}">×</button></span>`).join('');
-}
-function escapeHtml(value) { return value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); renderRecords(); }
-function renderRecords() {
-  $('#recordCount').textContent = records.length;
-  $('#emptyState').hidden = records.length > 0;
-  $('#records').innerHTML = records.slice().reverse().map(record => `<article class="record"><div class="record-top"><span class="record-name">${escapeHtml(record.name || '未命名食物')}</span><span class="${record.preference === '偏好吃' ? 'preference-good' : 'preference-bad'}">${record.preference || ''}</span></div><div class="record-meta">食材：${record.ingredients.map(escapeHtml).join('、')}</div><div class="record-tags">${[...record.aromatics,...record.seasonings,...record.flavors].map(value => `<span class="record-tag">${escapeHtml(value)}</span>`).join('')}</div></article>`).join('');
-}
+function escapeHtml(value) { return value.replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char])); }
+function renderIngredients() { $('#ingredientChips').innerHTML = ingredients.map((item, index) => `<span class="chip">${escapeHtml(item)}<button type="button" data-index="${index}" aria-label="删除${escapeHtml(item)}">×</button></span>`).join(''); }
+function renderRecords() { $('#emptyState').hidden = records.length > 0; $('#records').innerHTML = records.map(record => `<article class="record"><div class="record-content"><div class="record-image-box">${record.image_path ? `<img class="record-image" src="${record.image_path}" alt="${escapeHtml(record.name || '食物图片')}" />` : ''}</div><div class="record-info"><div class="record-top"><span class="record-name">${escapeHtml(record.name || '未命名食物')}</span><div class="record-side"><span class="${record.preference === '偏好吃' ? 'preference-good' : 'preference-bad'}">${record.preference || ''}</span><div class="record-tags">${record.flavors.map(value => `<span class="record-tag">${escapeHtml(value)}</span>`).join('')}</div></div></div><div class="record-meta">食材：${record.ingredients.map(escapeHtml).join('、')}</div></div></div></article>`).join(''); }
+async function loadRecords() { records.push(...await (await fetch('/api/foods')).json()); renderRecords(); }
 
-$('#addIngredient').addEventListener('click', () => { const input = $('#ingredientInput'); const value = input.value.trim(); if (!value || ingredients.includes(value)) return; ingredients.push(value); input.value = ''; renderIngredients(); input.focus(); });
+$('#addIngredient').addEventListener('click', () => { const input = $('#ingredientInput'); const value = input.value.trim(); if (!value || ingredients.includes(value)) return; ingredients.push(value); input.value = ''; $('#formError').textContent = ''; renderIngredients(); input.focus(); });
 $('#ingredientInput').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); $('#addIngredient').click(); } });
-$('#ingredientChips').addEventListener('click', event => { const index = event.target.dataset.index; if (index !== undefined) { ingredients.splice(Number(index), 1); renderIngredients(); } });
-document.addEventListener('click', event => { const button = event.target.closest('.choice'); if (button) button.classList.toggle('selected'); const preference = event.target.closest('#preference button'); if (preference) { document.querySelectorAll('#preference button').forEach(item => item.classList.remove('selected')); preference.classList.add('selected'); } });
-$('#foodForm').addEventListener('submit', event => { event.preventDefault(); if (!ingredients.length) { $('#ingredientInput').focus(); return; } records.push({ name: $('#dishName').value.trim(), ingredients: [...ingredients], aromatics: selected('aromatics'), seasonings: selected('seasonings'), flavors: selected('flavors'), preference: $('#preference .selected')?.dataset.value || '' }); save(); event.target.reset(); ingredients.length = 0; document.querySelectorAll('.selected').forEach(item => item.classList.remove('selected')); renderIngredients(); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); });
-$('#clearButton').addEventListener('click', () => { if (!records.length || !confirm('确定清空全部记录吗？')) return; records.length = 0; save(); });
-$('#historyButton').addEventListener('click', () => $('.recent-section').scrollIntoView({ behavior:'smooth' }));
-renderIngredients(); renderRecords();
+$('#ingredientChips').addEventListener('click', event => { const index = event.target.dataset.index; if (index === undefined) return; ingredients.splice(Number(index), 1); renderIngredients(); });
+document.addEventListener('click', event => { const choice = event.target.closest('.choice'); if (choice) choice.classList.toggle('selected'); const preference = event.target.closest('#preference button'); if (!preference) return; document.querySelectorAll('#preference button').forEach(button => button.classList.remove('selected')); preference.classList.add('selected'); });
+
+$('#imageInput').addEventListener('change', event => { const file = event.target.files[0]; if (!file) return; $('#imagePreview').src = URL.createObjectURL(file); $('#imagePreview').hidden = false; });
+async function compressImage(file) { const image = await new Promise((resolve, reject) => { const value = new Image(); value.onload = () => resolve(value); value.onerror = reject; value.src = URL.createObjectURL(file); }); const scale = Math.min(1, 800 / Math.max(image.width, image.height)); const canvas = document.createElement('canvas'); canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale); canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height); return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .35)); }
+
+$('#foodForm').addEventListener('submit', async event => { event.preventDefault(); if (!ingredients.length) { $('#formError').textContent = '没有添加食材'; $('#ingredientInput').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; } const saveButton = $('.save-fixed'); saveButton.disabled = true; saveButton.textContent = '保存中'; const file = $('#imageInput').files[0]; let imagePath = ''; if (file) { const form = new FormData(); form.append('image', await compressImage(file), 'food.jpg'); imagePath = (await (await fetch('/api/upload', { method: 'POST', body: form })).json()).path; } const record = { name: $('#dishName').value.trim(), ingredients: [...ingredients], flavors: selected('flavors'), preference: $('#preference .selected')?.dataset.value || '', image_path: imagePath }; await fetch('/api/foods', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }); records.length = 0; await loadRecords(); event.target.reset(); $('#imagePreview').hidden = true; ingredients.length = 0; document.querySelectorAll('.selected').forEach(item => item.classList.remove('selected')); renderIngredients(); $('#formError').textContent = ''; saveButton.disabled = false; saveButton.textContent = '保存记录'; window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); });
+renderIngredients(); loadRecords();

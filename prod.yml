@@ -1,0 +1,42 @@
+services:
+  myfood:
+    build: .
+    image: myfood-web
+    container_name: myfood-web
+    environment:
+      DB_HOST: mysql
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      COS_SECRET_ID: ${COS_SECRET_ID}
+      COS_SECRET_KEY: ${COS_SECRET_KEY}
+      COS_REGION: ${COS_REGION}
+      COS_BUCKET: ${COS_BUCKET}
+      COS_PUBLIC_URL: ${COS_PUBLIC_URL}
+    ports:
+      - "8080:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0.45
+    container_name: myfood-mysql
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  mysql-data:

@@ -4,36 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>MyFood · 食物记录</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=25" />
 </head>
 <body>
   <main class="app-shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">MY FOOD</p>
-        <h1>今天吃了什么？</h1>
-      </div>
-      <button class="ghost-button" id="historyButton" type="button">记录 <span id="recordCount">0</span></button>
-    </header>
-
     <form id="foodForm" class="card">
-      <label class="field">
-        <span>菜名 <em>可选</em></span>
-        <input id="dishName" type="text" placeholder="知道就写，不知道也没关系" autocomplete="off" />
-      </label>
-
-      <section class="field">
-        <span>食材 <em>至少添加一个</em></span>
-        <div class="add-row">
-          <input id="ingredientInput" type="text" placeholder="例如：鸡肉、土豆" autocomplete="off" />
-          <button class="small-button" id="addIngredient" type="button">添加</button>
+      <section class="meal-entry">
+        <label class="image-picker">
+          <span>图片</span>
+          <input id="imageInput" type="file" accept="image/*" />
+          <img id="imagePreview" class="image-preview" alt="图片预览" hidden />
+          <strong class="upload-icon" aria-label="上传图片"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 15v4h14v-4" /></svg></strong>
+        </label>
+        <div class="meal-details">
+          <label class="field">
+            <span>菜名 <em>可选</em></span>
+            <input id="dishName" type="text" placeholder="" autocomplete="off" />
+          </label>
+          <section class="field">
+            <span>食材 <b class="required-mark">*</b></span>
+            <div class="add-row">
+              <input id="ingredientInput" type="text" placeholder="" autocomplete="off" />
+              <button class="small-button" id="addIngredient" type="button">添加</button>
+            </div>
+            <div class="chips" id="ingredientChips" aria-live="polite"></div>
+            <p class="form-error" id="formError" role="alert"></p>
+          </section>
         </div>
-        <div class="chips" id="ingredientChips" aria-live="polite"></div>
       </section>
 
-      <ChoiceField title="香料" hint="可选" id="aromatics" options="辣椒,洋葱,大蒜,生姜,葱,香菜,花椒,胡椒,孜然,八角,桂皮,香叶,咖喱,芝麻" />
-      <ChoiceField title="调味料" hint="不特别就不填" id="seasonings" options="盐,糖,油,酱油,醋,蚝油,豆瓣酱,番茄酱,芝麻酱,鱼露,奶油,蜂蜜" />
-      <ChoiceField title="口味" hint="可多选" id="flavors" options="酸,甜,苦,辣,咸,鲜,麻,香,清淡,浓郁,奶香" />
+      <section class="field"><span>口味 <em>可多选</em></span><div class="choice-grid" id="flavors"><button class="choice" type="button" data-value="酸">酸</button><button class="choice" type="button" data-value="甜">甜</button><button class="choice" type="button" data-value="苦">苦</button><button class="choice" type="button" data-value="辣">辣</button><button class="choice" type="button" data-value="咸">咸</button></div></section>
 
       <section class="field">
         <span>偏好</span>
@@ -43,17 +43,15 @@
         </div>
       </section>
 
-      <button class="primary-button" type="submit">保存这道食物</button>
     </form>
 
     <section class="recent-section">
-      <div class="section-heading"><h2>最近记录</h2><button id="clearButton" class="text-button" type="button">清空</button></div>
+      <div class="section-heading"><h2>最近记录</h2></div>
       <div id="records" class="records"></div>
       <p id="emptyState" class="empty-state">还没有记录。吃完就记一下，之后更容易想起。</p>
     </section>
   </main>
-  <script src="app.js"></script>
+  <button class="save-fixed" type="submit" form="foodForm">保存记录</button>
+  <script src="app.js?v=25"></script>
 </body>
 </html>
-
-<!-- Simple server-side-free component expansion marker. -->
