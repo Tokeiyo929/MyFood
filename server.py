@@ -2,7 +2,8 @@ import json
 import os
 import cgi
 import uuid
-import pymysql
+import psycopg
+from psycopg.rows import dict_row
 from qcloud_cos import CosConfig, CosS3Client
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -11,22 +12,12 @@ schema_ready = False
 
 def db():
     global schema_ready
-    conn = pymysql.connect(host=os.environ.get('DB_HOST', 'mysql'), port=3306, user=os.environ.get('DB_USER', 'myfood'), password=os.environ.get('DB_PASSWORD', 'myfood'), database=os.environ.get('DB_NAME', 'myfood'), cursorclass=pymysql.cursors.DictCursor, autocommit=True)
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg.connect(database_url, row_factory=dict_row) if database_url else psycopg.connect(host=os.environ.get('DB_HOST', 'postgres'), port=os.environ.get('DB_PORT', 5432), user=os.environ.get('DB_USER', 'myfood'), password=os.environ.get('DB_PASSWORD', 'myfood'), dbname=os.environ.get('DB_NAME', 'myfood'), row_factory=dict_row)
+    conn.autocommit = True
     if not schema_ready:
         with conn.cursor() as cursor:
-            cursor.execute('SHOW TABLES LIKE \'foods\'')
-            if cursor.fetchone():
-                cursor.execute('SHOW COLUMNS FROM foods LIKE \'aromatics\'')
-                if cursor.fetchone():
-                    cursor.execute('CREATE TABLE foods_new (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL)')
-                    cursor.execute('INSERT INTO foods_new (id, name, ingredients, flavors, preference) SELECT id, name, ingredients, flavors, preference FROM foods')
-                    cursor.execute('DROP TABLE foods')
-                    cursor.execute('RENAME TABLE foods_new TO foods')
-                cursor.execute("SHOW COLUMNS FROM foods LIKE 'image_path'")
-                if not cursor.fetchone():
-                    cursor.execute('ALTER TABLE foods ADD COLUMN image_path VARCHAR(500) NOT NULL DEFAULT \'\'')
-            else:
-                cursor.execute("CREATE TABLE foods (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
+            cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
         schema_ready = True
     return conn
 
@@ -84,8 +75,8 @@ class Handler(SimpleHTTPRequestHandler):
         item = json.loads(self.rfile.read(length))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('INSERT INTO foods (name, ingredients, flavors, preference, image_path) VALUES (%s, %s, %s, %s, %s)', (item.get('name', ''), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('image_path', '')))
-            new_id = cursor.lastrowid
+            cursor.execute('INSERT INTO foods (name, ingredients, flavors, preference, image_path) VALUES (%s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('image_path', '')))
+            new_id = cursor.fetchone()['id']
         conn.close()
         self.send_json({'id': new_id})
 
