@@ -2,6 +2,7 @@ import json
 import os
 import cgi
 import uuid
+from urllib.parse import parse_qs, urlparse
 import psycopg
 from psycopg.rows import dict_row
 from qcloud_cos import CosConfig, CosS3Client
@@ -18,6 +19,7 @@ def db():
     if not schema_ready:
         with conn.cursor() as cursor:
             cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
         schema_ready = True
     return conn
 
@@ -43,13 +45,19 @@ class Handler(SimpleHTTPRequestHandler):
         return self.cos_client().get_presigned_download_url(Bucket=os.environ['COS_BUCKET'], Key=key, Expired=900)
 
     def do_GET(self):
-        if self.path == '/api/foods':
+        if self.path.startswith('/api/foods'):
+            query = parse_qs(urlparse(self.path).query)
+            page = max(int(query.get('page', ['1'])[0]), 1)
+            search = query.get('search', [''])[0].strip()
+            offset = (page - 1) * 10
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('SELECT id, name, ingredients, flavors, preference, image_path FROM foods ORDER BY id DESC')
+                cursor.execute('SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s', (f'%{search}%',))
+                total = cursor.fetchone()['total']
+                cursor.execute('SELECT id, name, brand_name, ingredients, flavors, preference, image_path FROM foods WHERE name ILIKE %s ORDER BY id DESC LIMIT 10 OFFSET %s', (f'%{search}%', offset))
                 rows = cursor.fetchall()
             conn.close()
-            self.send_json([{**row, 'ingredients': json.loads(row['ingredients']), 'flavors': json.loads(row['flavors']), 'image_path': self.signed_url(row['image_path'])} for row in rows])
+            self.send_json({'items': [{**row, 'ingredients': json.loads(row['ingredients']), 'flavors': json.loads(row['flavors']), 'image_path': self.signed_url(row['image_path'])} for row in rows], 'total': total})
             return
         super().do_GET()
 
@@ -75,10 +83,21 @@ class Handler(SimpleHTTPRequestHandler):
         item = json.loads(self.rfile.read(length))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('INSERT INTO foods (name, ingredients, flavors, preference, image_path) VALUES (%s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('image_path', '')))
+            cursor.execute('INSERT INTO foods (name, brand_name, ingredients, flavors, preference, image_path) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), item.get('brand_name', ''), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('image_path', '')))
             new_id = cursor.fetchone()['id']
         conn.close()
         self.send_json({'id': new_id})
+
+    def do_PATCH(self):
+        food_id = int(self.path.rsplit('/', 1)[-1])
+        length = int(self.headers.get('Content-Length', 0))
+        item = json.loads(self.rfile.read(length))
+        conn = db()
+        with conn.cursor() as cursor:
+            cursor.execute('UPDATE foods SET preference = %s WHERE id = %s', (item['preference'], food_id))
+        conn.close()
+        self.send_json({'id': food_id})
+
 
 if __name__ == '__main__':
     ThreadingHTTPServer(('0.0.0.0', 80), Handler).serve_forever()
