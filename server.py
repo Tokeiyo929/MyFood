@@ -49,12 +49,13 @@ class Handler(SimpleHTTPRequestHandler):
             query = parse_qs(urlparse(self.path).query)
             page = max(int(query.get('page', ['1'])[0]), 1)
             search = query.get('search', [''])[0].strip()
-            offset = (page - 1) * 10
+            limit = min(max(int(query.get('limit', ['5'])[0]), 1), 50)
+            offset = (page - 1) * limit
             conn = db()
             with conn.cursor() as cursor:
                 cursor.execute('SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s', (f'%{search}%',))
                 total = cursor.fetchone()['total']
-                cursor.execute('SELECT id, name, brand_name, ingredients, flavors, preference, image_path FROM foods WHERE name ILIKE %s ORDER BY id DESC LIMIT 10 OFFSET %s', (f'%{search}%', offset))
+                cursor.execute('SELECT id, name, brand_name, ingredients, flavors, preference, image_path FROM foods WHERE name ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s', (f'%{search}%', limit, offset))
                 rows = cursor.fetchall()
             conn.close()
             self.send_json({'items': [{**row, 'ingredients': json.loads(row['ingredients']), 'flavors': json.loads(row['flavors']), 'image_path': self.signed_url(row['image_path'])} for row in rows], 'total': total})
