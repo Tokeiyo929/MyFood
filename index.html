@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>MyFood · 食物记录</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3" />
-<link rel="apple-touch-icon" href="favicon.svg?v=3" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=4" />
+<link rel="apple-touch-icon" href="favicon.svg?v=4" />
 <meta name="theme-color" content="#66508f" />
 <link rel="manifest" href="manifest.webmanifest" />
-<link rel="stylesheet" href="style.css?v=95" />
+<link rel="stylesheet" href="style.css?v=103" />
 </head>
 <body>
   <main class="app-shell">
@@ -16,8 +16,8 @@
       <section class="meal-entry">
         <label class="image-picker">
           <input id="imageInput" type="file" accept="image/*" />
+          <strong class="upload-icon" aria-label="上传图片"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="m6.5 16 3.5-3.5 2.5 2.5 2-2 3 3"/><circle cx="8.5" cy="9" r="1.2"/></svg></strong>
           <img id="imagePreview" class="image-preview" alt="图片预览" hidden />
-          <strong class="upload-icon" aria-label="上传图片"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 15v4h14v-4" /></svg></strong>
         </label>
         <div class="meal-details">
           <label class="field">
@@ -65,6 +65,6 @@
     </section>
   </main>
   <button class="save-fixed" type="submit" form="foodForm">保存记录</button>
-    <script src="app.js?v=85"></script>
+    <script src="app.js?v=88"></script>
 </body>
 </html>
