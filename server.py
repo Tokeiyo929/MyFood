@@ -97,7 +97,7 @@ class Handler(SimpleHTTPRequestHandler):
         item = json.loads(self.rfile.read(length))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('UPDATE foods SET preference = %s, repurchase_count = repurchase_count + %s WHERE id = %s', (item['preference'], 1 if item['preference'] == '偏好吃' else 0, food_id))
+            cursor.execute('UPDATE foods SET preference = %s, dislike_reason = %s, repurchase_count = repurchase_count + %s WHERE id = %s', (item['preference'], item.get('dislike_reason', ''), 1 if item['preference'] == '偏好吃' else 0, food_id))
         conn.close()
         self.send_json({'id': food_id})
 
