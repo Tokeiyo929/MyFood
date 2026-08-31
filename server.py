@@ -20,6 +20,8 @@ def db():
         with conn.cursor() as cursor:
             cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS dislike_reason VARCHAR(500) NOT NULL DEFAULT ''")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS repurchase_count INTEGER NOT NULL DEFAULT 0")
         schema_ready = True
     return conn
 
@@ -53,9 +55,9 @@ class Handler(SimpleHTTPRequestHandler):
             offset = (page - 1) * limit
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s', (f'%{search}%',))
+                cursor.execute('SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s', (f'%{search}%', f'%{search}%'))
                 total = cursor.fetchone()['total']
-                cursor.execute('SELECT id, name, brand_name, ingredients, flavors, preference, image_path FROM foods WHERE name ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s', (f'%{search}%', limit, offset))
+                cursor.execute('SELECT id, name, brand_name, ingredients, flavors, preference, dislike_reason, repurchase_count, image_path FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s', (f'%{search}%', f'%{search}%', limit, offset))
                 rows = cursor.fetchall()
             conn.close()
             self.send_json({'items': [{**row, 'ingredients': json.loads(row['ingredients']), 'flavors': json.loads(row['flavors']), 'image_path': self.signed_url(row['image_path'])} for row in rows], 'total': total})
@@ -84,7 +86,7 @@ class Handler(SimpleHTTPRequestHandler):
         item = json.loads(self.rfile.read(length))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('INSERT INTO foods (name, brand_name, ingredients, flavors, preference, image_path) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), item.get('brand_name', ''), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('image_path', '')))
+            cursor.execute('INSERT INTO foods (name, brand_name, ingredients, flavors, preference, dislike_reason, image_path) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), item.get('brand_name', ''), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('dislike_reason', ''), item.get('image_path', '')))
             new_id = cursor.fetchone()['id']
         conn.close()
         self.send_json({'id': new_id})
@@ -95,7 +97,7 @@ class Handler(SimpleHTTPRequestHandler):
         item = json.loads(self.rfile.read(length))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('UPDATE foods SET preference = %s WHERE id = %s', (item['preference'], food_id))
+            cursor.execute('UPDATE foods SET preference = %s, repurchase_count = repurchase_count + %s WHERE id = %s', (item['preference'], 1 if item['preference'] == '偏好吃' else 0, food_id))
         conn.close()
         self.send_json({'id': food_id})
 
