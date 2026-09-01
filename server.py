@@ -101,6 +101,17 @@ class Handler(SimpleHTTPRequestHandler):
         conn.close()
         self.send_json({'id': food_id})
 
+    def do_DELETE(self):
+        if not self.path.startswith('/api/foods/'):
+            self.send_error(404)
+            return
+        food_id = int(self.path.rsplit('/', 1)[-1])
+        conn = db()
+        with conn.cursor() as cursor:
+            cursor.execute('DELETE FROM foods WHERE id = %s', (food_id,))
+        conn.close()
+        self.send_json({'id': food_id})
+
 
 if __name__ == '__main__':
     ThreadingHTTPServer(('0.0.0.0', 80), Handler).serve_forever()
