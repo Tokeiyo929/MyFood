@@ -28,20 +28,6 @@ $('#foodForm').addEventListener('submit', async event => { event.preventDefault(
 $('#recordSearch').addEventListener('input', () => loadRecords(true));
 $('#clearSearch').addEventListener('click', () => { $('#recordSearch').value = ''; loadRecords(true); $('#recordSearch').focus(); });
 window.addEventListener('scroll', () => { if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160) loadRecords(false); });
-let swipeStartX = 0;
-let swipeStartY = 0;
-let swipeTracking = false;
-let swipeCard = null;
-document.addEventListener('touchstart', event => { const card = event.target.closest('.record'); if (!card || event.touches.length !== 1) return; swipeCard = card; swipeStartX = event.touches[0].clientX; swipeStartY = event.touches[0].clientY; }, { passive: true });
-document.addEventListener('touchmove', event => { if (!swipeCard || event.touches.length !== 1) return; const x = event.touches[0].clientX - swipeStartX; const y = event.touches[0].clientY - swipeStartY; if (!swipeTracking && Math.abs(x) > 8) swipeTracking = Math.abs(x) > Math.abs(y); if (!swipeTracking) return; event.preventDefault(); const distance = Math.max(0, Math.min(76, x)); swipeCard.querySelector('.record-content').style.transform = `translateX(${distance}px)`; }, { passive: false });
-document.addEventListener('touchend', event => { if (!swipeCard) return; const card = swipeCard; swipeCard = null; swipeTracking = false; const distance = event.changedTouches[0].clientX - swipeStartX; card.querySelector('.record-content').style.transform = ''; if (distance < 70) { card.classList.remove('swiped'); return; } if (!card.querySelector('.record-swipe-delete')) card.insertAdjacentHTML('afterbegin', '<button class="record-swipe-delete" type="button">删除</button>'); card.classList.add('swiped'); }, { passive: false });
-document.addEventListener('touchcancel', () => { if (!swipeCard) return; swipeCard.querySelector('.record-content').style.transform = ''; swipeCard.classList.remove('swiped'); swipeCard = null; swipeTracking = false; }, { passive: true });
-document.addEventListener('click', async event => { const button = event.target.closest('.record-swipe-delete'); if (!button) return; event.stopPropagation(); const card = button.closest('.record'); await fetch(`/api/foods/${card.dataset.id}`, { method: 'DELETE' }); await loadRecords(); }, true);
-let pointerStartX = 0;
-let pointerStartY = 0;
-let pointerCard = null;
-document.addEventListener('pointerdown', event => { const card = event.target.closest('.record'); if (!card || event.button > 0) return; pointerCard = card; pointerStartX = event.clientX; pointerStartY = event.clientY; card.setPointerCapture?.(event.pointerId); });
-document.addEventListener('pointerup', event => { if (!pointerCard) return; const card = pointerCard; pointerCard = null; const x = event.clientX - pointerStartX; const y = event.clientY - pointerStartY; if (x <= 70 || Math.abs(x) < Math.abs(y)) return; if (!card.querySelector('.record-swipe-delete')) card.insertAdjacentHTML('afterbegin', '<button class="record-swipe-delete" type="button">删除</button>'); card.classList.add('swiped'); });
 const originalRenderRecords = renderRecords;
 renderRecords = () => { originalRenderRecords(); document.querySelectorAll('.record-meta').forEach(item => { item.textContent = item.textContent.replace(/^食材：/, ''); }); document.querySelectorAll('.record').forEach(card => { const record = records.find(item => String(item.id) === card.dataset.id); if (record?.preference === '偏难吃') { card.querySelector('.repurchase-actions').innerHTML = `<div class="dislike-reason-display">难吃理由：${escapeHtml(record.dislike_reason || '未填写')}</div>`; } else if (record) { const button = card.querySelector('.repurchase-choice[data-value="偏好吃"]'); if (button) button.textContent = '复购仍然好吃'; const actions = card.querySelector('.repurchase-actions'); if (actions && !actions.querySelector('.repurchase-count')) actions.insertAdjacentHTML('beforeend', `<span class="repurchase-count">已复购 ${record.repurchase_count || 0} 次</span>`); } }); };
 $('#preference').addEventListener('click', event => { const button = event.target.closest('button'); if (!button) return; const field = $('#dislikeReasonField'); const bad = button.dataset.value === '偏难吃'; field.hidden = !bad; $('#dislikeReason').required = bad; if (!bad) $('#dislikeReason').value = ''; });
@@ -49,4 +35,6 @@ $('#foodForm').addEventListener('submit', event => { if ($('#preference .selecte
 const nativeFetch = window.fetch;
 window.fetch = (url, options) => { if (url === '/api/foods' && options?.method === 'POST') { const data = JSON.parse(options.body); data.dislike_reason = $('#dislikeReason').value.trim(); options.body = JSON.stringify(data); } return nativeFetch(url, options); };
 $('#foodForm').addEventListener('reset', () => { flavorOrder.length = 0; });
+let saveTimeout;
+$('#foodForm').addEventListener('submit', () => { clearTimeout(saveTimeout); saveTimeout = setTimeout(() => { const button = $('.save-fixed'); if (button.textContent === '保存中') { button.disabled = false; button.textContent = '保存记录'; $('#formError').textContent = '保存失败，请检查网络后重新点击保存记录'; } }, 10000); }, true);
 renderIngredients(); loadRecords();
