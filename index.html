@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="favicon.svg?v=4" />
 <meta name="theme-color" content="#66508f" />
 <link rel="manifest" href="manifest.webmanifest" />
-<link rel="stylesheet" href="style.css?v=118" />
+    <link rel="stylesheet" href="style.css?v=119" />
 </head>
 <body>
   <main class="app-shell">
@@ -32,9 +32,7 @@
         </div>
       </section>
 
-      <section class="field"><span>品类</span><input id="category" type="text" placeholder="例如：中式糕点" autocomplete="off" /></section>
-
-      <section class="field"><span>标签</span><div class="add-row"><input id="tagInput" type="text" placeholder="添加不可拆分的小标签" autocomplete="off" /><button class="small-button" id="addTag" type="button">添加</button></div><div class="chips" id="tagChips" aria-live="polite"></div><div class="tag-suggestions" id="tagSuggestions"></div></section>
+      <section class="field"><span>标签</span><input id="tagInput" type="search" placeholder="搜索标签" autocomplete="off" /><div class="chips" id="tagChips" aria-live="polite"></div><div class="tag-suggestions" id="tagSuggestions"></div></section>
 
       <section class="field"><span>味道 <em>可多选</em></span><div class="choice-grid" id="flavors"><button class="choice" type="button" data-value="酸">酸</button><button class="choice" type="button" data-value="甜">甜</button><button class="choice" type="button" data-value="苦">苦</button><button class="choice" type="button" data-value="辣">辣</button><button class="choice" type="button" data-value="咸">咸</button></div></section>
 
@@ -52,11 +50,9 @@
 
       <section class="field">
         <span>食材 <b class="required-mark">*</b></span>
-        <div class="add-row">
-          <input id="ingredientInput" type="text" placeholder="" autocomplete="off" />
-          <button class="small-button" id="addIngredient" type="button">添加</button>
-        </div>
+        <input id="ingredientInput" type="search" placeholder="搜索食材" autocomplete="off" />
         <div class="chips" id="ingredientChips" aria-live="polite"></div>
+        <div class="tag-suggestions" id="ingredientSuggestions"></div>
         <p class="form-error" id="formError" role="alert"></p>
       </section>
 
@@ -70,6 +66,6 @@
       <p id="emptyState" class="empty-state">还没有记录。吃完就记一下，之后更容易想起。</p>
     </section>
   </main>
-    <script src="app.js?v=104"></script>
+    <script src="app.js?v=109"></script>
 </body>
 </html>
