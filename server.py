@@ -22,6 +22,11 @@ def db():
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS dislike_reason VARCHAR(500) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS repurchase_count INTEGER NOT NULL DEFAULT 0")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS category VARCHAR(255) NOT NULL DEFAULT ''")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS tags TEXT NOT NULL DEFAULT '[]'")
+            cursor.execute("CREATE TABLE IF NOT EXISTS tags (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, category VARCHAR(255) NOT NULL DEFAULT '')")
+            initial_tags = ['麻麻', '我要', '排练', '米米', '壹壹', '富贵', '紙', '鑫茶', '南瓜饼', '板栗饼', '榴莲饼', '薏米糕', '老婆饼', '芋泥饼', '芡实糕', '桂花糕', '凤梨酥', '绿豆饼', '芝麻饼', '绿豆糕', '肉松饼', '鲜花饼', '雪花酥', '沙琪玛', '蛋黄酥']
+            cursor.executemany("INSERT INTO tags (name, category) VALUES (%s, '中式糕点') ON CONFLICT (name) DO NOTHING", [(tag,) for tag in initial_tags])
         schema_ready = True
     return conn
 
@@ -57,10 +62,18 @@ class Handler(SimpleHTTPRequestHandler):
             with conn.cursor() as cursor:
                 cursor.execute('SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s', (f'%{search}%', f'%{search}%'))
                 total = cursor.fetchone()['total']
-                cursor.execute('SELECT id, name, brand_name, ingredients, flavors, preference, dislike_reason, repurchase_count, image_path FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s', (f'%{search}%', f'%{search}%', limit, offset))
+                cursor.execute('SELECT id, name, brand_name, category, tags, ingredients, flavors, preference, dislike_reason, repurchase_count, image_path FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s', (f'%{search}%', f'%{search}%', limit, offset))
                 rows = cursor.fetchall()
             conn.close()
-            self.send_json({'items': [{**row, 'ingredients': json.loads(row['ingredients']), 'flavors': json.loads(row['flavors']), 'image_path': self.signed_url(row['image_path'])} for row in rows], 'total': total})
+            self.send_json({'items': [{**row, 'ingredients': json.loads(row['ingredients']), 'flavors': json.loads(row['flavors']), 'tags': json.loads(row['tags']), 'image_path': self.signed_url(row['image_path'])} for row in rows], 'total': total})
+            return
+        if self.path == '/api/tags':
+            conn = db()
+            with conn.cursor() as cursor:
+                cursor.execute('SELECT id, name, category FROM tags ORDER BY id')
+                rows = cursor.fetchall()
+            conn.close()
+            self.send_json({'items': rows})
             return
         super().do_GET()
 
@@ -86,7 +99,7 @@ class Handler(SimpleHTTPRequestHandler):
         item = json.loads(self.rfile.read(length))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('INSERT INTO foods (name, brand_name, ingredients, flavors, preference, dislike_reason, image_path) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), item.get('brand_name', ''), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('dislike_reason', ''), item.get('image_path', '')))
+            cursor.execute('INSERT INTO foods (name, brand_name, category, tags, ingredients, flavors, preference, dislike_reason, image_path) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), item.get('brand_name', ''), item.get('category', ''), json.dumps(item.get('tags', []), ensure_ascii=False), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('dislike_reason', ''), item.get('image_path', '')))
             new_id = cursor.fetchone()['id']
         conn.close()
         self.send_json({'id': new_id})
