@@ -207,7 +207,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    host = os.environ.get('APP_HOST', '0.0.0.0')
+    port = os.environ.get('PORT', os.environ.get('APP_PORT', '80'))
     ThreadingHTTPServer(
-        (os.environ['APP_HOST'], int(os.environ['APP_PORT'])),
+        (host, int(port)),
         Handler,
     ).serve_forever()
