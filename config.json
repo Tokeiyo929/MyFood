@@ -10,6 +10,7 @@
     "signed_url_expiry": 900
   },
   "preferences": {
+    "excellent": {"value": "很好吃", "label": "很好吃"},
     "good": {"value": "偏好吃", "label": "偏好吃"},
     "bad": {"value": "偏难吃", "label": "偏难吃"}
   },

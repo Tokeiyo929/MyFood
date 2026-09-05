@@ -26,6 +26,7 @@ def db():
             cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS dislike_reason VARCHAR(500) NOT NULL DEFAULT ''")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS good_reason VARCHAR(500) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS repurchase_count INTEGER NOT NULL DEFAULT 0")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS tags TEXT NOT NULL DEFAULT '[]'")
             cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS category")
@@ -103,7 +104,7 @@ class Handler(SimpleHTTPRequestHandler):
                 )
                 total = cursor.fetchone()['total']
                 cursor.execute(
-                    'SELECT id, name, brand_name, tags, ingredients, flavors, preference, dislike_reason, repurchase_count, image_path '
+                    'SELECT id, name, brand_name, tags, ingredients, flavors, preference, dislike_reason, good_reason, repurchase_count, image_path '
                     'FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s '
                     'ORDER BY id DESC LIMIT %s OFFSET %s',
                     (f'%{search}%', f'%{search}%', limit, offset),
@@ -143,6 +144,20 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        if self.path == '/api/ingredients':
+            length = int(self.headers['Content-Length'])
+            item = json.loads(self.rfile.read(length))
+            name = item['name'].strip()
+            conn = db()
+            with conn.cursor() as cursor:
+                cursor.execute('INSERT INTO ingredients (name) VALUES (%s) ON CONFLICT (name) DO NOTHING RETURNING id, name', (name,))
+                row = cursor.fetchone()
+                if row is None:
+                    cursor.execute('SELECT id, name FROM ingredients WHERE name = %s', (name,))
+                    row = cursor.fetchone()
+            conn.close()
+            self.send_json(row, 201)
+            return
         if self.path == '/api/upload':
             form = cgi.FieldStorage(
                 fp=self.rfile,
@@ -171,8 +186,8 @@ class Handler(SimpleHTTPRequestHandler):
         conn = db()
         with conn.cursor() as cursor:
             cursor.execute(
-                'INSERT INTO foods (name, brand_name, tags, ingredients, flavors, preference, dislike_reason, image_path) '
-                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
+                'INSERT INTO foods (name, brand_name, tags, ingredients, flavors, preference, dislike_reason, good_reason, image_path) '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
                 (
                     item.get('name', ''),
                     item.get('brand_name', ''),
@@ -181,6 +196,7 @@ class Handler(SimpleHTTPRequestHandler):
                     json.dumps(item.get('flavors', []), ensure_ascii=False),
                     item.get('preference', ''),
                     item.get('dislike_reason', ''),
+                    item.get('good_reason', ''),
                     item.get('image_path', ''),
                 ),
             )

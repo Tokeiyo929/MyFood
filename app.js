@@ -19,9 +19,25 @@ function renderOptions() {
     $('#flavors').innerHTML = settings.flavors.map(value =>
         `<button class="choice" type="button" data-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`
     ).join('');
-    $('#preference').innerHTML = Object.values(settings.preferences).map(({ value, label }) =>
-        `<button type="button" data-value="${escapeHtml(value)}">${escapeHtml(label)}</button>`
-    ).join('');
+    const preferences = Object.values(settings.preferences);
+    const orderedPreferences = preferences.slice().reverse();
+    $('#preference').innerHTML = `<div class="preference-status"><span id="preferenceFace" aria-hidden="true">🙂</span><span id="preferenceLabel">偏好吃</span></div><input id="preferenceSlider" type="range" min="0" max="100" step="50" value="50" aria-label="偏好程度" />`;
+    $('#preference').dataset.values = orderedPreferences.map(item => item.value).join('|');
+    updatePreference(orderedPreferences[1].value);
+}
+
+function updatePreference(value) {
+    document.querySelectorAll('#preference button').forEach(button => button.classList.toggle('selected', button.dataset.value === value));
+    const bad = value === settings.preferences.bad.value;
+    const excellent = value === settings.preferences.excellent.value;
+    $('#preferenceFace').textContent = excellent ? '😄' : value === settings.preferences.good.value ? '🙂' : '😞';
+    $('#preferenceLabel').textContent = excellent ? settings.preferences.excellent.label : value === settings.preferences.good.value ? settings.preferences.good.label : settings.preferences.bad.label;
+    $('#dislikeReasonField').hidden = !bad;
+    $('#dislikeReason').required = bad;
+    $('#goodReasonField').hidden = !excellent;
+    $('#goodReason').required = excellent;
+    if (!bad) $('#dislikeReason').value = '';
+    if (!excellent) $('#goodReason').value = '';
 }
 
 function renderIngredients() {
@@ -64,8 +80,35 @@ function addTag(value) {
     renderTagSuggestions();
 }
 
+function renderCatalogs() {
+    $('#allTags').innerHTML = availableTags.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
+    $('#allIngredients').innerHTML = availableIngredients.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
+}
+
+async function addCatalogIngredient() {
+    const input = $('#catalogIngredientInput');
+    const name = input.value.trim();
+    if (!name) return;
+    const result = await (await fetch('/api/ingredients', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name}),
+    })).json();
+    if (!availableIngredients.some(item => item.id === result.id)) availableIngredients.push(result);
+    input.value = '';
+    renderCatalogs();
+    renderIngredientSuggestions();
+    input.focus();
+}
+
+function switchView(viewId) {
+    document.querySelectorAll('.app-view').forEach(view => { view.hidden = view.id !== viewId; });
+    document.querySelectorAll('.tabs-bar button').forEach(button => button.classList.toggle('active', button.dataset.view === viewId));
+    if (viewId === 'recordsView') window.scrollTo(0, 0);
+}
+
 function renderRecords() {
-    const { good, bad } = settings.preferences;
+    const { good, bad, excellent } = settings.preferences;
     $('#emptyState').hidden = records.length > 0;
     $('#records').innerHTML = records.map(record => `<article class="record ${record.preference === good.value ? 'preference-good-card' : record.preference === bad.value ? 'preference-bad-card' : ''}" data-id="${record.id}">
         <div class="record-content">
@@ -162,6 +205,14 @@ $('#tagSuggestions').addEventListener('click', event => {
     renderTagSuggestions();
     $('#tagInput').focus();
 });
+document.querySelector('.tabs-bar').addEventListener('click', event => {
+    const button = event.target.closest('[data-view]');
+    if (button) switchView(button.dataset.view);
+});
+$('#addCatalogIngredient').addEventListener('click', addCatalogIngredient);
+$('#catalogIngredientInput').addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
+});
 $('#flavors').addEventListener('click', event => {
     const choice = event.target.closest('.choice');
     if (!choice) return;
@@ -169,6 +220,11 @@ $('#flavors').addEventListener('click', event => {
     if (index >= 0) flavorOrder.splice(index, 1);
     else flavorOrder.push(choice.dataset.value);
     choice.classList.toggle('selected');
+});
+$('#preference').addEventListener('input', event => {
+    if (event.target.id !== 'preferenceSlider') return;
+    const values = $('#preference').dataset.values.split('|');
+    updatePreference(values[Math.round(Number(event.target.value) / 50)]);
 });
 
 document.addEventListener('click', async event => {
@@ -278,6 +334,7 @@ $('#foodForm').addEventListener('submit', async event => {
         flavors: [...flavorOrder],
         preference: selectedPreference ? selectedPreference.dataset.value : '',
         dislike_reason: $('#dislikeReason').value.trim(),
+        good_reason: $('#goodReason').value.trim(),
         image_path: imagePath,
     };
     await fetch('/api/foods', {
@@ -294,6 +351,8 @@ $('#foodForm').addEventListener('submit', async event => {
     document.querySelectorAll('.selected').forEach(item => item.classList.remove('selected'));
     $('#dislikeReasonField').hidden = true;
     $('#dislikeReason').required = false;
+    $('#goodReasonField').hidden = true;
+    $('#goodReason').required = false;
     renderIngredients();
     renderTags();
     renderTagSuggestions();
@@ -317,22 +376,23 @@ window.addEventListener('scroll', () => {
 $('#preference').addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button) return;
-    const bad = button.dataset.value === settings.preferences.bad.value;
-    $('#dislikeReasonField').hidden = !bad;
-    $('#dislikeReason').required = bad;
-    if (!bad) $('#dislikeReason').value = '';
+    const values = $('#preference').dataset.values.split('|');
+    $('#preferenceSlider').value = values.indexOf(button.dataset.value);
+    updatePreference(button.dataset.value);
 });
 
 async function loadTags() {
     const result = await (await fetch('/api/tags')).json();
     availableTags.push(...result.items);
     renderTagSuggestions();
+    renderCatalogs();
 }
 
 async function loadIngredients() {
     const result = await (await fetch('/api/ingredients')).json();
     availableIngredients.push(...result.items);
     renderIngredientSuggestions();
+    renderCatalogs();
 }
 
 async function init() {
