@@ -45,4 +45,4 @@ MyFood 最终希望回答三个问题：
 
 ## 技术说明
 
-项目采用 Web 页面记录数据，Web 服务与 MySQL 数据库分别运行在独立 Docker 容器中。记录数据保存到 MySQL，不依赖浏览器本地存储。
+项目采用 Web 页面记录数据，Web 服务与 PostgreSQL 数据库分别运行在独立 Docker 容器中。记录数据保存到 PostgreSQL，不依赖浏览器本地存储。

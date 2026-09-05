@@ -4,15 +4,16 @@ services:
     image: myfood-web
     container_name: myfood-web
     environment:
-      DB_HOST: postgres
+      APP_HOST: 0.0.0.0
+      APP_PORT: 80
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       COS_SECRET_ID: ${COS_SECRET_ID}
       COS_SECRET_KEY: ${COS_SECRET_KEY}
       COS_REGION: ${COS_REGION}
       COS_BUCKET: ${COS_BUCKET}
-      COS_PUBLIC_URL: ${COS_PUBLIC_URL}
     ports:
       - "8080:80"
     depends_on:

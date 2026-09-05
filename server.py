@@ -1,20 +1,25 @@
+import cgi
 import json
 import os
-import cgi
 import uuid
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
+
 import psycopg
 from psycopg.rows import dict_row
 from qcloud_cos import CosConfig, CosS3Client
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(ROOT, 'config.json'), encoding='utf-8') as file:
+    CONFIG = json.load(file)
+
 schema_ready = False
+
 
 def db():
     global schema_ready
-    database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg.connect(database_url, row_factory=dict_row) if database_url else psycopg.connect(host=os.environ.get('DB_HOST', 'postgres'), port=os.environ.get('DB_PORT', 5432), user=os.environ.get('DB_USER', 'myfood'), password=os.environ.get('DB_PASSWORD', 'myfood'), dbname=os.environ.get('DB_NAME', 'myfood'), row_factory=dict_row)
+    conn = psycopg.connect(os.environ['DATABASE_URL'], row_factory=dict_row)
     conn.autocommit = True
     if not schema_ready:
         with conn.cursor() as cursor:
@@ -26,20 +31,30 @@ def db():
             cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS category")
             cursor.execute("CREATE TABLE IF NOT EXISTS tags (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, category VARCHAR(255) NOT NULL DEFAULT '')")
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
-            initial_tags = ['麻麻', '我要', '排练', '米米', '壹壹', '富贵', '紙', '鑫茶', '南瓜饼', '板栗饼', '榴莲饼', '薏米糕', '老婆饼', '芋泥饼', '芡实糕', '桂花糕', '凤梨酥', '绿豆饼', '芝麻饼', '绿豆糕', '肉松饼', '鲜花饼', '雪花酥', '沙琪玛', '蛋黄酥']
-            cursor.executemany("INSERT INTO tags (name, category) VALUES (%s, '中式糕点') ON CONFLICT (name) DO NOTHING", [(tag,) for tag in initial_tags])
-            cursor.execute("SELECT ingredients FROM foods")
+            cursor.executemany(
+                "INSERT INTO tags (name, category) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
+                [(tag['name'], tag['category']) for tag in CONFIG['initial_tags']],
+            )
+            cursor.execute('SELECT ingredients FROM foods')
             for row in cursor.fetchall():
-                for ingredient in json.loads(row['ingredients'] or '[]'):
+                for ingredient in json.loads(row['ingredients']):
                     ingredient = ingredient.strip()
                     if ingredient:
-                        cursor.execute("INSERT INTO ingredients (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", (ingredient,))
+                        cursor.execute(
+                            'INSERT INTO ingredients (name) VALUES (%s) ON CONFLICT (name) DO NOTHING',
+                            (ingredient,),
+                        )
         schema_ready = True
     return conn
+
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
+
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store')
+        super().end_headers()
 
     def send_json(self, value, status=200):
         body = json.dumps(value, ensure_ascii=False).encode()
@@ -50,29 +65,64 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def cos_client(self):
-        return CosS3Client(CosConfig(Region=os.environ['COS_REGION'], SecretId=os.environ['COS_SECRET_ID'], SecretKey=os.environ['COS_SECRET_KEY']))
+        return CosS3Client(CosConfig(
+            Region=os.environ['COS_REGION'],
+            SecretId=os.environ['COS_SECRET_ID'],
+            SecretKey=os.environ['COS_SECRET_KEY'],
+        ))
 
     def signed_url(self, key):
         if not key:
             return ''
         key = key.split('.com/', 1)[-1]
-        return self.cos_client().get_presigned_download_url(Bucket=os.environ['COS_BUCKET'], Key=key, Expired=900)
+        return self.cos_client().get_presigned_download_url(
+            Bucket=os.environ['COS_BUCKET'],
+            Key=key,
+            Expired=CONFIG['image']['signed_url_expiry'],
+        )
 
     def do_GET(self):
-        if self.path.startswith('/api/foods'):
-            query = parse_qs(urlparse(self.path).query)
+        if self.path == '/api/config':
+            self.send_json({key: CONFIG[key] for key in ('pagination', 'image', 'preferences', 'flavors')})
+            return
+        parsed_path = urlparse(self.path)
+        if parsed_path.path == '/api/foods':
+            query = parse_qs(parsed_path.query)
             page = max(int(query.get('page', ['1'])[0]), 1)
             search = query.get('search', [''])[0].strip()
-            limit = min(max(int(query.get('limit', ['5'])[0]), 1), 50)
+            limit = min(
+                max(int(query.get('limit', [CONFIG['pagination']['page_size']])[0]), 1),
+                CONFIG['pagination']['max_page_size'],
+            )
             offset = (page - 1) * limit
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s', (f'%{search}%', f'%{search}%'))
+                cursor.execute(
+                    'SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s',
+                    (f'%{search}%', f'%{search}%'),
+                )
                 total = cursor.fetchone()['total']
-                cursor.execute('SELECT id, name, brand_name, tags, ingredients, flavors, preference, dislike_reason, repurchase_count, image_path FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s', (f'%{search}%', f'%{search}%', limit, offset))
+                cursor.execute(
+                    'SELECT id, name, brand_name, tags, ingredients, flavors, preference, dislike_reason, repurchase_count, image_path '
+                    'FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s '
+                    'ORDER BY id DESC LIMIT %s OFFSET %s',
+                    (f'%{search}%', f'%{search}%', limit, offset),
+                )
                 rows = cursor.fetchall()
             conn.close()
-            self.send_json({'items': [{**row, 'ingredients': json.loads(row['ingredients']), 'flavors': json.loads(row['flavors']), 'tags': json.loads(row['tags']), 'image_path': self.signed_url(row['image_path'])} for row in rows], 'total': total})
+            self.send_json({
+                'items': [
+                    {
+                        **row,
+                        'ingredients': json.loads(row['ingredients']),
+                        'flavors': json.loads(row['flavors']),
+                        'tags': json.loads(row['tags']),
+                        'image_path': self.signed_url(row['image_path']),
+                    }
+                    for row in rows
+                ],
+                'total': total,
+            })
             return
         if self.path == '/api/tags':
             conn = db()
@@ -94,41 +144,70 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == '/api/upload':
-            form = cgi.FieldStorage(fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': self.headers['Content-Type'], 'CONTENT_LENGTH': self.headers['Content-Length']})
+            form = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={
+                    'REQUEST_METHOD': 'POST',
+                    'CONTENT_TYPE': self.headers['Content-Type'],
+                    'CONTENT_LENGTH': self.headers['Content-Length'],
+                },
+            )
             item = form['image']
-            extension = os.path.splitext(item.filename or '')[1].lower() or '.jpg'
-            filename = f'{uuid.uuid4().hex}{extension}'
-            secret_id = os.environ['COS_SECRET_ID']
-            secret_key = os.environ['COS_SECRET_KEY']
-            region = os.environ['COS_REGION']
-            bucket = os.environ['COS_BUCKET']
+            extension = os.path.splitext(item.filename)[1].lower()
             key = f'myfood/{uuid.uuid4().hex}{extension}'
-            client = CosS3Client(CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key))
-            client.put_object(Bucket=bucket, Body=item.file, Key=key, ContentType=item.type or 'image/jpeg')
+            self.cos_client().put_object(
+                Bucket=os.environ['COS_BUCKET'],
+                Body=item.file,
+                Key=key,
+                ContentType=item.type,
+            )
             self.send_json({'path': key})
             return
         if self.path != '/api/foods':
             self.send_error(404)
             return
-        length = int(self.headers.get('Content-Length', 0))
-        item = json.loads(self.rfile.read(length))
+        item = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('INSERT INTO foods (name, brand_name, tags, ingredients, flavors, preference, dislike_reason, image_path) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id', (item.get('name', ''), item.get('brand_name', ''), json.dumps(item.get('tags', []), ensure_ascii=False), json.dumps(item['ingredients'], ensure_ascii=False), json.dumps(item.get('flavors', []), ensure_ascii=False), item.get('preference', ''), item.get('dislike_reason', ''), item.get('image_path', '')))
+            cursor.execute(
+                'INSERT INTO foods (name, brand_name, tags, ingredients, flavors, preference, dislike_reason, image_path) '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
+                (
+                    item.get('name', ''),
+                    item.get('brand_name', ''),
+                    json.dumps(item.get('tags', []), ensure_ascii=False),
+                    json.dumps(item['ingredients'], ensure_ascii=False),
+                    json.dumps(item.get('flavors', []), ensure_ascii=False),
+                    item.get('preference', ''),
+                    item.get('dislike_reason', ''),
+                    item.get('image_path', ''),
+                ),
+            )
             new_id = cursor.fetchone()['id']
         conn.close()
         self.send_json({'id': new_id})
 
     def do_PATCH(self):
         food_id = int(self.path.rsplit('/', 1)[-1])
-        length = int(self.headers.get('Content-Length', 0))
-        item = json.loads(self.rfile.read(length))
+        item = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         conn = db()
         with conn.cursor() as cursor:
-            cursor.execute('UPDATE foods SET preference = %s, dislike_reason = %s, repurchase_count = repurchase_count + %s WHERE id = %s', (item['preference'], item.get('dislike_reason', ''), 1 if item['preference'] == '偏好吃' else 0, food_id))
+            cursor.execute(
+                'UPDATE foods SET preference = %s, dislike_reason = %s, repurchase_count = repurchase_count + %s WHERE id = %s',
+                (
+                    item['preference'],
+                    item.get('dislike_reason', ''),
+                    1 if item['preference'] == CONFIG['preferences']['good']['value'] else 0,
+                    food_id,
+                ),
+            )
         conn.close()
         self.send_json({'id': food_id})
 
 
 if __name__ == '__main__':
-    ThreadingHTTPServer(('0.0.0.0', 80), Handler).serve_forever()
+    ThreadingHTTPServer(
+        (os.environ['APP_HOST'], int(os.environ['APP_PORT'])),
+        Handler,
+    ).serve_forever()
