@@ -15,8 +15,8 @@
     "bad": {"value": "偏难吃", "label": "偏难吃"}
   },
   "flavors": ["酸", "甜", "苦", "辣", "咸"],
-  "initial_tags": [
-    {"name": "沙琪玛", "category": "中式糕点"},
-    {"name": "蛋黄酥", "category": "中式糕点"}
+  "initial_categories": [
+    {"name": "沙琪玛"},
+    {"name": "蛋黄酥"}
   ]
 }

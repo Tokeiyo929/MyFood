@@ -28,13 +28,16 @@ def db():
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS dislike_reason VARCHAR(500) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS good_reason VARCHAR(500) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS repurchase_count INTEGER NOT NULL DEFAULT 0")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS tags TEXT NOT NULL DEFAULT '[]'")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS categories TEXT NOT NULL DEFAULT '[]'")
+            cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'tags') THEN UPDATE foods SET categories = tags WHERE categories = '[]' AND tags <> '[]'; ALTER TABLE foods DROP COLUMN tags; END IF; END $$")
             cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS category")
-            cursor.execute("CREATE TABLE IF NOT EXISTS tags (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, category VARCHAR(255) NOT NULL DEFAULT '')")
+            cursor.execute("DO $$ BEGIN IF to_regclass('public.tags') IS NOT NULL AND to_regclass('public.categories') IS NULL THEN ALTER TABLE tags RENAME TO categories; END IF; END $$")
+            cursor.execute("CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
+            cursor.execute("ALTER TABLE categories DROP COLUMN IF EXISTS category")
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
             cursor.executemany(
-                "INSERT INTO tags (name, category) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
-                [(tag['name'], tag['category']) for tag in CONFIG['initial_tags']],
+                "INSERT INTO categories (name) VALUES (%s) ON CONFLICT (name) DO NOTHING",
+                [(category['name'],) for category in CONFIG['initial_categories']],
             )
             cursor.execute('SELECT ingredients FROM foods')
             for row in cursor.fetchall():
@@ -45,6 +48,18 @@ def db():
                             'INSERT INTO ingredients (name) VALUES (%s) ON CONFLICT (name) DO NOTHING',
                             (ingredient,),
                         )
+            cursor.execute('SELECT id, flavors FROM foods')
+            for row in cursor.fetchall():
+                flavors = json.loads(row['flavors'])
+                if any(isinstance(flavor, str) or flavor.get('level') == 75 for flavor in flavors if isinstance(flavor, (str, dict))):
+                    flavors = [
+                        {'name': flavor, 'level': 60} if isinstance(flavor, str) else ({**flavor, 'level': 60} if flavor.get('level') == 75 else flavor)
+                        for flavor in flavors
+                    ]
+                    cursor.execute(
+                        'UPDATE foods SET flavors = %s WHERE id = %s',
+                        (json.dumps(flavors, ensure_ascii=False), row['id']),
+                    )
         schema_ready = True
     return conn
 
@@ -104,7 +119,7 @@ class Handler(SimpleHTTPRequestHandler):
                 )
                 total = cursor.fetchone()['total']
                 cursor.execute(
-                    'SELECT id, name, brand_name, tags, ingredients, flavors, preference, dislike_reason, good_reason, repurchase_count, image_path '
+                    'SELECT id, name, brand_name, categories, ingredients, flavors, preference, dislike_reason, good_reason, repurchase_count, image_path '
                     'FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s '
                     'ORDER BY id DESC LIMIT %s OFFSET %s',
                     (f'%{search}%', f'%{search}%', limit, offset),
@@ -117,7 +132,7 @@ class Handler(SimpleHTTPRequestHandler):
                         **row,
                         'ingredients': json.loads(row['ingredients']),
                         'flavors': json.loads(row['flavors']),
-                        'tags': json.loads(row['tags']),
+                        'categories': json.loads(row['categories']),
                         'image_path': self.signed_url(row['image_path']),
                     }
                     for row in rows
@@ -125,10 +140,10 @@ class Handler(SimpleHTTPRequestHandler):
                 'total': total,
             })
             return
-        if self.path == '/api/tags':
+        if self.path == '/api/categories':
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('SELECT id, name, category FROM tags ORDER BY id')
+                cursor.execute('SELECT id, name FROM categories ORDER BY id')
                 rows = cursor.fetchall()
             conn.close()
             self.send_json({'items': rows})
@@ -186,12 +201,12 @@ class Handler(SimpleHTTPRequestHandler):
         conn = db()
         with conn.cursor() as cursor:
             cursor.execute(
-                'INSERT INTO foods (name, brand_name, tags, ingredients, flavors, preference, dislike_reason, good_reason, image_path) '
+                'INSERT INTO foods (name, brand_name, categories, ingredients, flavors, preference, dislike_reason, good_reason, image_path) '
                 'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
                 (
                     item.get('name', ''),
                     item.get('brand_name', ''),
-                    json.dumps(item.get('tags', []), ensure_ascii=False),
+                    json.dumps(item.get('categories', []), ensure_ascii=False),
                     json.dumps(item['ingredients'], ensure_ascii=False),
                     json.dumps(item.get('flavors', []), ensure_ascii=False),
                     item.get('preference', ''),

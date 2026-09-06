@@ -4,7 +4,9 @@ const availableIngredients = [];
 const tags = [];
 const availableTags = [];
 const flavorOrder = [];
+const flavorLevels = {};
 let settings;
+let currentPreference = '';
 
 const $ = selector => document.querySelector(selector);
 const escapeHtml = value => value.replace(/[&<>"']/g, char => ({
@@ -14,19 +16,58 @@ const escapeHtml = value => value.replace(/[&<>"']/g, char => ({
     '"': '&quot;',
     "'": '&#39;',
 }[char]));
+const flavorName = value => typeof value === 'string' ? value : value.name;
+const formatFlavorName = (name, level) => level < 33 ? `不${name}` : level > 66 ? `太${name}` : name;
+const flavorDisplayName = value => typeof value === 'string' ? value : formatFlavorName(value.name, value.level);
+const flavorAxisName = value => formatFlavorName(value, flavorLevels[value] ?? 50);
 
 function renderOptions() {
-    $('#flavors').innerHTML = settings.flavors.map(value =>
-        `<button class="choice" type="button" data-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`
-    ).join('');
+    settings.flavors.forEach(value => { flavorLevels[value] = 50; });
+    renderFlavorWheel();
     const preferences = Object.values(settings.preferences);
     const orderedPreferences = preferences.slice().reverse();
     $('#preference').innerHTML = `<div class="preference-status"><span id="preferenceFace" aria-hidden="true">🙂</span><span id="preferenceLabel">偏好吃</span></div><input id="preferenceSlider" type="range" min="0" max="100" step="50" value="50" aria-label="偏好程度" />`;
     $('#preference').dataset.values = orderedPreferences.map(item => item.value).join('|');
     updatePreference(orderedPreferences[1].value);
+    updatePreferenceSlider();
 }
 
+function renderFlavorWheel() {
+    const center = 110;
+    const radius = 76;
+    const points = settings.flavors.map((value, index) => {
+        const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+        return {value, angle, x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius};
+    });
+    const pointString = values => points.map(point => {
+        const level = values[point.value] ?? 50;
+        const distance = radius * level / 100;
+        return `${center + Math.cos(point.angle) * distance},${center + Math.sin(point.angle) * distance}`;
+    }).join(' ');
+    const outline = points.map(point => `${point.x},${point.y}`).join(' ');
+    $('#flavors').innerHTML = `<svg class="flavor-radar" viewBox="0 0 220 220" role="img" aria-label="五维味道转盘"><polygon class="flavor-grid" points="${outline}" />${points.map(point => `<line class="flavor-axis-line" x1="${center}" y1="${center}" x2="${point.x}" y2="${point.y}" /><text x="${center + Math.cos(point.angle) * 98}" y="${center + Math.sin(point.angle) * 98}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(flavorAxisName(point.value))}</text>`).join('')}<polygon class="flavor-value" points="${pointString(flavorLevels)}" />${points.map(point => `<circle class="flavor-handle" data-flavor="${escapeHtml(point.value)}" cx="${center + Math.cos(point.angle) * radius * (flavorLevels[point.value] ?? 50) / 100}" cy="${center + Math.sin(point.angle) * radius * (flavorLevels[point.value] ?? 50) / 100}" r="7" />`).join('')}</svg><button type="button" class="flavor-reset" id="resetFlavors" aria-label="重置味道默认值" title="重置默认"><span aria-hidden="true">↻</span></button>`;
+    $('#flavors').querySelectorAll('.flavor-handle').forEach(handle => handle.addEventListener('pointerdown', startFlavorDrag));
+    $('#resetFlavors').addEventListener('click', () => { settings.flavors.forEach(value => { flavorLevels[value] = 50; }); renderFlavorWheel(); });
+}
+
+let draggingFlavor;
+function startFlavorDrag(event) { draggingFlavor = event.currentTarget.dataset.flavor; event.currentTarget.setPointerCapture?.(event.pointerId); }
+window.addEventListener('pointermove', event => {
+    if (!draggingFlavor) return;
+    const svg = $('#flavors svg');
+    const rect = svg.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * 220 / rect.width - 110;
+    const y = (event.clientY - rect.top) * 220 / rect.height - 110;
+    const index = settings.flavors.indexOf(draggingFlavor);
+    const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+    const level = Math.max(0, Math.min(100, Math.round((x * Math.cos(angle) + y * Math.sin(angle)) / 76 * 100)));
+    flavorLevels[draggingFlavor] = level;
+    renderFlavorWheel();
+});
+window.addEventListener('pointerup', () => { draggingFlavor = null; });
+
 function updatePreference(value) {
+    currentPreference = value;
     document.querySelectorAll('#preference button').forEach(button => button.classList.toggle('selected', button.dataset.value === value));
     const bad = value === settings.preferences.bad.value;
     const excellent = value === settings.preferences.excellent.value;
@@ -38,6 +79,11 @@ function updatePreference(value) {
     $('#goodReason').required = excellent;
     if (!bad) $('#dislikeReason').value = '';
     if (!excellent) $('#goodReason').value = '';
+}
+
+function updatePreferenceSlider() {
+    const slider = $('#preferenceSlider');
+    slider.style.setProperty('--preference-progress', `${slider.value}%`);
 }
 
 function renderIngredients() {
@@ -82,7 +128,8 @@ function addTag(value) {
 
 function renderCatalogs() {
     $('#allTags').innerHTML = availableTags.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
-    $('#allIngredients').innerHTML = availableIngredients.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
+    const query = $('#catalogIngredientInput').value.trim().toLowerCase();
+    $('#allIngredients').innerHTML = availableIngredients.filter(item => !query || item.name.toLowerCase().includes(query)).map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
 }
 
 async function addCatalogIngredient() {
@@ -110,7 +157,9 @@ function switchView(viewId) {
 function renderRecords() {
     const { good, bad, excellent } = settings.preferences;
     $('#emptyState').hidden = records.length > 0;
-    $('#records').innerHTML = records.map(record => `<article class="record ${record.preference === good.value ? 'preference-good-card' : record.preference === bad.value ? 'preference-bad-card' : ''}" data-id="${record.id}">
+    $('#records').innerHTML = records.map(record => {
+        const visibleFlavors = record.flavors.filter(value => typeof value === 'string' || value.level !== 50);
+        return `<article class="record ${record.preference === excellent.value ? 'preference-excellent-card' : record.preference === bad.value ? 'preference-bad-card' : 'preference-good-card'}" data-id="${record.id}">
         <div class="record-content">
             <div class="record-image-box">${record.image_path ? `<img class="record-image" src="${record.image_path}" alt="${escapeHtml(record.name)}" />` : ''}</div>
             <div class="record-info">
@@ -118,8 +167,8 @@ function renderRecords() {
                     <div class="record-title"><span class="record-name">${escapeHtml(record.name)}</span></div>
                     <div class="record-side"><div class="record-summary">
                         ${record.brand_name ? `<span class="record-brand">${escapeHtml(record.brand_name)}</span>` : ''}
-                        ${record.flavors.length ? `<div class="record-tags">${record.flavors.map(value => `<span class="record-tag">${escapeHtml(value)}</span>`).join('')}</div>` : ''}
-                        ${record.tags.length ? `<div class="record-user-tags">${record.tags.map(value => `<span class="record-tag">${escapeHtml(value)}</span>`).join('')}</div>` : ''}
+                        ${visibleFlavors.length ? `<div class="record-tags">${visibleFlavors.map(value => `<span class="record-tag">${escapeHtml(flavorDisplayName(value))}</span>`).join('')}</div>` : ''}
+                        ${record.categories.length ? `<div class="record-user-tags">${record.categories.map(value => `<span class="record-tag">${escapeHtml(value)}</span>`).join('')}</div>` : ''}
                     </div></div>
                     <div class="repurchase-actions">
                         <button class="repurchase-choice" data-value="${good.value}" type="button">${good.label}</button>
@@ -129,13 +178,19 @@ function renderRecords() {
                 </div>
             </div>
         </div>
-    </article>`).join('');
+    </article>`;
+    }).join('');
 
     document.querySelectorAll('.record').forEach(card => {
         const record = records.find(item => String(item.id) === card.dataset.id);
         if (record.preference === bad.value) {
             card.querySelector('.repurchase-actions').innerHTML =
                 `<div class="dislike-reason-display">难吃理由：${escapeHtml(record.dislike_reason)}</div>`;
+            return;
+        }
+        if (record.preference === excellent.value) {
+            card.querySelector('.repurchase-actions').innerHTML =
+                `<div class="good-reason-display">好吃理由：${escapeHtml(record.good_reason)}</div>`;
             return;
         }
         card.querySelector(`.repurchase-choice[data-value="${good.value}"]`).textContent = '复购仍然好吃';
@@ -213,18 +268,13 @@ $('#addCatalogIngredient').addEventListener('click', addCatalogIngredient);
 $('#catalogIngredientInput').addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
 });
-$('#flavors').addEventListener('click', event => {
-    const choice = event.target.closest('.choice');
-    if (!choice) return;
-    const index = flavorOrder.indexOf(choice.dataset.value);
-    if (index >= 0) flavorOrder.splice(index, 1);
-    else flavorOrder.push(choice.dataset.value);
-    choice.classList.toggle('selected');
-});
+$('#catalogIngredientInput').addEventListener('input', renderCatalogs);
+$('#flavors').addEventListener('input', event => { const input = event.target.closest('[data-flavor]'); if (input) flavorLevels[input.dataset.flavor] = Number(input.value); });
 $('#preference').addEventListener('input', event => {
     if (event.target.id !== 'preferenceSlider') return;
     const values = $('#preference').dataset.values.split('|');
     updatePreference(values[Math.round(Number(event.target.value) / 50)]);
+    updatePreferenceSlider();
 });
 
 document.addEventListener('click', async event => {
@@ -325,14 +375,13 @@ $('#foodForm').addEventListener('submit', async event => {
         form.append('image', await compressImage(file), 'food.jpg');
         imagePath = (await (await fetch('/api/upload', {method: 'POST', body: form})).json()).path;
     }
-    const selectedPreference = $('#preference .selected');
     const record = {
         name: $('#dishName').value.trim(),
         brand_name: $('#brandName').value.trim(),
-        tags: [...tags],
+        categories: [...tags],
         ingredients: [...ingredients],
-        flavors: [...flavorOrder],
-        preference: selectedPreference ? selectedPreference.dataset.value : '',
+        flavors: Object.entries(flavorLevels).filter(([, level]) => level > 0).map(([name, level]) => ({name, level})),
+        preference: currentPreference,
         dislike_reason: $('#dislikeReason').value.trim(),
         good_reason: $('#goodReason').value.trim(),
         image_path: imagePath,
@@ -348,11 +397,16 @@ $('#foodForm').addEventListener('submit', async event => {
     ingredients.length = 0;
     tags.length = 0;
     flavorOrder.length = 0;
+    Object.keys(flavorLevels).forEach(value => { flavorLevels[value] = 50; });
+    document.querySelectorAll('#flavors input[data-flavor]').forEach(input => { input.value = 50; });
     document.querySelectorAll('.selected').forEach(item => item.classList.remove('selected'));
     $('#dislikeReasonField').hidden = true;
     $('#dislikeReason').required = false;
     $('#goodReasonField').hidden = true;
     $('#goodReason').required = false;
+    $('#preferenceSlider').value = 50;
+    updatePreference(settings.preferences.good.value);
+    updatePreferenceSlider();
     renderIngredients();
     renderTags();
     renderTagSuggestions();
@@ -382,7 +436,7 @@ $('#preference').addEventListener('click', event => {
 });
 
 async function loadTags() {
-    const result = await (await fetch('/api/tags')).json();
+    const result = await (await fetch('/api/categories')).json();
     availableTags.push(...result.items);
     renderTagSuggestions();
     renderCatalogs();
