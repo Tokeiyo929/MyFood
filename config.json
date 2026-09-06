@@ -9,10 +9,17 @@
     "quality": 0.35,
     "signed_url_expiry": 900
   },
+  "flavor_scale": {
+    "default_level": 50,
+    "min_level": 0,
+    "max_level": 100,
+    "low_threshold": 33,
+    "high_threshold": 66
+  },
   "preferences": {
-    "excellent": {"value": "很好吃", "label": "很好吃"},
-    "good": {"value": "偏好吃", "label": "偏好吃"},
-    "bad": {"value": "偏难吃", "label": "偏难吃"}
+    "excellent": {"value": "很好吃", "label": "很好吃", "level": 100, "face": "😄"},
+    "good": {"value": "偏好吃", "label": "偏好吃", "level": 50, "face": "🙂"},
+    "bad": {"value": "偏难吃", "label": "偏难吃", "level": 0, "face": "😞"}
   },
   "flavors": ["酸", "甜", "苦", "辣", "咸"],
   "initial_categories": [

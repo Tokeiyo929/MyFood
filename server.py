@@ -33,7 +33,6 @@ def db():
             cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS category")
             cursor.execute("DO $$ BEGIN IF to_regclass('public.tags') IS NOT NULL AND to_regclass('public.categories') IS NULL THEN ALTER TABLE tags RENAME TO categories; END IF; END $$")
             cursor.execute("CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
-            cursor.execute("ALTER TABLE categories DROP COLUMN IF EXISTS category")
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
             cursor.executemany(
                 "INSERT INTO categories (name) VALUES (%s) ON CONFLICT (name) DO NOTHING",
@@ -51,14 +50,14 @@ def db():
             cursor.execute('SELECT id, flavors FROM foods')
             for row in cursor.fetchall():
                 flavors = json.loads(row['flavors'])
-                if any(isinstance(flavor, str) or flavor.get('level') == 75 for flavor in flavors if isinstance(flavor, (str, dict))):
-                    flavors = [
-                        {'name': flavor, 'level': 60} if isinstance(flavor, str) else ({**flavor, 'level': 60} if flavor.get('level') == 75 else flavor)
-                        for flavor in flavors
-                    ]
+                normalized_flavors = [
+                    {'name': flavor, 'level': CONFIG['flavor_scale']['default_level']} if isinstance(flavor, str) else flavor
+                    for flavor in flavors
+                ]
+                if normalized_flavors != flavors:
                     cursor.execute(
                         'UPDATE foods SET flavors = %s WHERE id = %s',
-                        (json.dumps(flavors, ensure_ascii=False), row['id']),
+                        (json.dumps(normalized_flavors, ensure_ascii=False), row['id']),
                     )
         schema_ready = True
     return conn
@@ -99,7 +98,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/api/config':
-            self.send_json({key: CONFIG[key] for key in ('pagination', 'image', 'preferences', 'flavors')})
+            self.send_json({key: CONFIG[key] for key in ('pagination', 'image', 'flavor_scale', 'preferences', 'flavors')})
             return
         parsed_path = urlparse(self.path)
         if parsed_path.path == '/api/foods':
@@ -165,11 +164,8 @@ class Handler(SimpleHTTPRequestHandler):
             name = item['name'].strip()
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('INSERT INTO ingredients (name) VALUES (%s) ON CONFLICT (name) DO NOTHING RETURNING id, name', (name,))
+                cursor.execute('INSERT INTO ingredients (name) VALUES (%s) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id, name', (name,))
                 row = cursor.fetchone()
-                if row is None:
-                    cursor.execute('SELECT id, name FROM ingredients WHERE name = %s', (name,))
-                    row = cursor.fetchone()
             conn.close()
             self.send_json(row, 201)
             return
@@ -238,9 +234,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    host = os.environ.get('APP_HOST', '0.0.0.0')
-    port = os.environ.get('PORT', os.environ.get('APP_PORT', '80'))
     ThreadingHTTPServer(
-        (host, int(port)),
+        ('0.0.0.0', int(os.environ['PORT'])),
         Handler,
     ).serve_forever()
