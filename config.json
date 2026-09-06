@@ -22,8 +22,9 @@
     "bad": {"value": "偏难吃", "label": "偏难吃", "level": 0, "face": "😞"}
   },
   "flavors": ["酸", "甜", "苦", "辣", "咸"],
+  "default_parentcategory": "中式糕点",
   "initial_categories": [
-    {"name": "沙琪玛"},
-    {"name": "蛋黄酥"}
+    {"name": "沙琪玛", "parentcategories": "中式糕点"},
+    {"name": "蛋黄酥", "parentcategories": "中式糕点"}
   ]
 }

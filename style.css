@@ -22,13 +22,12 @@ button { cursor: pointer; }
 .catalog-view { min-height: calc(100vh - 112px); }
 .catalog-list { display: flex; flex-wrap: wrap; gap: 10px; }
 .catalog-group { flex: 1 1 100%; }
-.catalog-group-title { margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 15px; font-weight: 750; }
-.catalog-group-title { position: relative; cursor: pointer; }
+.catalog-group-title { position: relative; width: 100%; margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font: inherit; font-weight: 750; text-align: left; cursor: pointer; }
 .catalog-group-title::after { position: absolute; top: 50%; right: 14px; width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid var(--accent); content: ''; transform: translateY(-50%); }
 .catalog-group.expanded .catalog-group-title::after { border-top: 7px solid var(--accent); border-right: 5px solid transparent; border-bottom: 0; border-left: 5px solid transparent; }
 .catalog-group-items { display: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .catalog-group.expanded .catalog-group-items { display: grid; }
-.catalog-group-items .catalog-item { width: 100%; box-sizing: border-box; text-align: center; }
+.catalog-group-items .catalog-item { width: 100%; text-align: center; }
 .catalog-item { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
 .catalog-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .catalog-add-row input { flex: 1; }

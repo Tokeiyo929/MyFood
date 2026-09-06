@@ -144,8 +144,7 @@ function addCategory(value) {
 
 function renderCatalogs() {
     const groupedCategories = availableCategories.reduce((groups, item) => {
-        const parent = item.parentcategories || '未分类';
-        (groups[parent] ||= []).push(item);
+        (groups[item.parentcategories] ||= []).push(item);
         return groups;
     }, {});
     $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParents.has(parent) ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParents.has(parent)}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('')}</div></section>`).join('');
