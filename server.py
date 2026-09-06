@@ -33,8 +33,8 @@ def db():
             cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS category")
             cursor.execute("DO $$ BEGIN IF to_regclass('public.tags') IS NOT NULL AND to_regclass('public.categories') IS NULL THEN ALTER TABLE tags RENAME TO categories; END IF; END $$")
             cursor.execute("CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
+            cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'parentcatogries') AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'parentcategories') THEN ALTER TABLE categories RENAME COLUMN parentcatogries TO parentcategories; END IF; END $$")
             cursor.execute("ALTER TABLE categories ADD COLUMN IF NOT EXISTS parentcategories VARCHAR(255) NOT NULL DEFAULT '中式糕点'")
-            cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'parentcatogries') THEN ALTER TABLE categories RENAME COLUMN parentcatogries TO parentcategories; END IF; END $$")
             cursor.execute("UPDATE categories SET parentcategories = '中式糕点' WHERE parentcategories IS DISTINCT FROM '中式糕点'")
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
             cursor.executemany(
