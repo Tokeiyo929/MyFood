@@ -20,7 +20,6 @@ button, input { font: inherit; }
 button { cursor: pointer; }
 .app-shell { width: min(100%, 620px); margin: auto; padding: 16px 16px 92px; }
 .catalog-view { min-height: calc(100vh - 112px); }
-.catalog-view h1 { margin: 4px 0 18px; font-size: 24px; }
 .catalog-list { display: flex; flex-wrap: wrap; gap: 10px; }
 .catalog-item { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
 .catalog-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -45,24 +44,18 @@ button { cursor: pointer; }
 em { display: none; }
 .required-mark { color: #c54f5f; font-weight: 800; }
 input { width: 100%; min-height: 40px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; outline: none; background: #fff; color: var(--ink); }
-#foodForm > .field > input:not(#preferenceSlider) { width: 340px; max-width: 100%; }
+#foodForm > .field > input { width: 340px; max-width: 100%; }
 #foodForm > .field { width: 340px; max-width: 100%; }
-.meal-entry + .field { height: 80px; }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
-.chips, .choice-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-.chips { min-width: 0; max-width: 100%; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; padding-bottom: 2px; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain; }
+.chips { display: flex; min-width: 0; max-width: 100%; flex-wrap: nowrap; gap: 8px; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; white-space: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain; }
 .chips::-webkit-scrollbar { display: none; }
 .chips .chip { flex: 0 0 auto; }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 8px; background: var(--mint); }
 .chip button { border: 0; background: none; }
-.choice, .segmented button { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
-.choice.selected, .segmented button.selected { border-color: var(--accent); color: var(--accent); background: var(--soft); }
 .flavor-preference-layout { position: relative; display: grid; width: 340px; max-width: 100%; height: 240px; grid-template-columns: 240px 90px; align-items: center; gap: 8px; }
 .flavor-preference-section { display: contents; }
 .flavor-wheel { display: contents; }
-.preference-panel { width: 90px; height: 240px; display: flex; place-items: center; justify-self: center; align-self: center; margin: 0; }
-.vertical-layout { flex-direction: column; gap: 8px; }
-#preference > * { flex: 0 0 auto; align-self: center; margin-left: auto; margin-right: auto; }
+.preference-panel { display: flex; width: 90px; height: 240px; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; justify-self: center; align-self: center; }
 .flavor-radar { width: 240px; height: 240px; justify-self: center; align-self: center; overflow: visible; touch-action: pan-y; }
 .flavor-grid { fill: rgba(217,199,255,.16); stroke: var(--line); stroke-width: 1; }
 .flavor-axis-line { stroke: var(--line); stroke-width: 1; }
@@ -73,35 +66,19 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
 .flavor-handle:active { cursor: grabbing; }
 .flavor-reset { position: absolute; top: 8px; left: 8px; display: grid; width: 38px; height: 38px; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--accent); font-size: 24px; line-height: 1; box-shadow: 0 3px 8px rgba(102,80,143,.1); }
 .flavor-reset:active { transform: scale(.94); }
-.flavor-axis { position: absolute; display: grid; gap: 2px; justify-items: center; width: 90px; font-size: 13px; font-weight: 700; }
-.flavor-axis input { width: 90px; min-height: 20px; padding: 0; }
-.flavor-axis-0 { top: -18px; left: 45px; }
-.flavor-axis-1 { top: 45px; right: -48px; }
-.flavor-axis-2 { bottom: -18px; right: 0; }
-.flavor-axis-3 { bottom: -18px; left: 0; }
-.flavor-axis-4 { top: 45px; left: -48px; }
-.segmented { display: flex; gap: 8px; }
-.segmented button { flex: 1; min-height: 42px; }
-.preference-slider { display: grid; gap: 8px; }
-#preference { display: flex; width: 90px; height: 240px; min-width: 0; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; }
-#preferenceSlider { position: relative; width: 24px; height: 150px; align-self: center; justify-self: center; margin: 0 auto; padding: 0; border: 0; border-radius: 0; outline: none; box-shadow: none; accent-color: var(--accent); writing-mode: vertical-lr; direction: rtl; appearance: none; -webkit-appearance: none; background: transparent; }
+#preferenceSlider { width: 24px; min-width: 0; height: 150px; margin: 0; padding: 0; border: 0; border-radius: 0; outline: none; box-shadow: none; accent-color: var(--accent); writing-mode: vertical-lr; direction: rtl; appearance: none; -webkit-appearance: none; background: transparent; }
 #preferenceSlider:focus { border: 0; box-shadow: none; }
 #preferenceSlider::-webkit-slider-runnable-track { width: 18px; height: 150px; border-radius: 999px; background: linear-gradient(to top, #66508f 0 var(--preference-progress), #e6e0ef var(--preference-progress) 100%); }
 #preferenceSlider::-moz-range-track { width: 18px; height: 150px; border-radius: 999px; background: #e6e0ef; }
 #preferenceSlider::-moz-range-progress { width: 18px; border-radius: 999px; background: #66508f; }
 #preferenceSlider::-webkit-slider-thumb { width: 18px; height: 18px; margin-left: 0; appearance: none; -webkit-appearance: none; border: 3px solid #4b376f; border-radius: 50%; background: #fff; }
 #preferenceSlider::-moz-range-thumb { width: 18px; height: 18px; border: 3px solid #4b376f; border-radius: 50%; background: #fff; }
-.preference-status { display: flex; flex-direction: column; flex: 0 0 auto; min-height: 30px; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 #preferenceFace { display: block; width: max-content; height: 36px; margin: 0 auto; font-size: 28px; line-height: 36px; text-align: center; }
 #preferenceLabel { display: grid; width: 48px; height: 24px; place-items: center; color: var(--ink); font-size: 13px; font-weight: 700; line-height: 1.5; text-align: center; }
-#preferenceSlider { width: 24px; min-width: 0; }
 .form-error { color: var(--danger); }
-.save-fixed { position: static; justify-self: end; width: 150px; min-height: 44px; margin: -4px 0 2px; order: -1; border: 0; border-radius: 12px; color: #fff; background: var(--accent); font-weight: 800; font-size: 15px; }
-.form-footer { display: flex; width: 340px; max-width: 100%; justify-content: stretch; margin-top: 2px; }
-.form-footer .save-fixed { flex: 1; margin: 0; order: 0; }
+.save-fixed { flex: 1; min-height: 44px; border: 0; border-radius: 12px; color: #fff; background: var(--accent); font-weight: 800; font-size: 15px; }
+.form-footer { display: flex; width: 340px; max-width: 100%; margin-top: 2px; }
 .recent-section { margin-top: 30px; }
-.section-heading { display: flex; }
-.section-heading h2 { margin-right: auto; }
 .record-tools { display: flex; gap: 8px; margin: 12px 0; }
 .record-tools input { flex: 1; }
 .record-tools button { width: 40px; min-width: 40px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--muted); font-size: 22px; line-height: 1; }
@@ -137,11 +114,8 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
 .tag-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
 .quick-ingredient { flex: 0 0 auto; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-size: 14px; }
 /* 页面文字统一字号，仅保留颜色和字重差异。 */
-body, button, input { font-size: 15px; }
-h1, h2, h3, p, label, span, button, input { font-size: 15px; }
-.field > span, .meal-details .field > span { font-size: 15px; }
+.field > span { font-size: 15px; }
 .flavor-radar text, #preferenceLabel, .quick-ingredient, .record-user-tags, .repurchase-count { font-size: 15px; }
-#preferenceFace { font-size: 28px; }
 @media (max-width: 620px) {
   .meal-entry { grid-template-columns: 150px 1fr; height: 150px; gap: 12px; }
   .image-picker { justify-self: auto; }

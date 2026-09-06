@@ -33,8 +33,6 @@ def db():
             cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS category")
             cursor.execute("DO $$ BEGIN IF to_regclass('public.tags') IS NOT NULL AND to_regclass('public.categories') IS NULL THEN ALTER TABLE tags RENAME TO categories; END IF; END $$")
             cursor.execute("CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
-            cursor.execute("ALTER TABLE categories ADD COLUMN IF NOT EXISTS parentcategories VARCHAR(255) NOT NULL DEFAULT '中式糕点'")
-            cursor.execute("UPDATE categories SET parentcategories = '中式糕点' WHERE parentcategories IS DISTINCT FROM '中式糕点'")
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
             cursor.executemany(
                 "INSERT INTO categories (name) VALUES (%s) ON CONFLICT (name) DO NOTHING",
@@ -144,7 +142,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == '/api/categories':
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('SELECT id, name, parentcategories FROM categories ORDER BY id')
+                cursor.execute('SELECT id, name FROM categories ORDER BY id')
                 rows = cursor.fetchall()
             conn.close()
             self.send_json({'items': rows})
@@ -202,15 +200,15 @@ class Handler(SimpleHTTPRequestHandler):
                 'INSERT INTO foods (name, brand_name, categories, ingredients, flavors, preference, dislike_reason, good_reason, image_path) '
                 'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
                 (
-                    item.get('name', ''),
-                    item.get('brand_name', ''),
-                    json.dumps(item.get('categories', []), ensure_ascii=False),
+                    item['name'],
+                    item['brand_name'],
+                    json.dumps(item['categories'], ensure_ascii=False),
                     json.dumps(item['ingredients'], ensure_ascii=False),
-                    json.dumps(item.get('flavors', []), ensure_ascii=False),
-                    item.get('preference', ''),
-                    item.get('dislike_reason', ''),
-                    item.get('good_reason', ''),
-                    item.get('image_path', ''),
+                    json.dumps(item['flavors'], ensure_ascii=False),
+                    item['preference'],
+                    item['dislike_reason'],
+                    item['good_reason'],
+                    item['image_path'],
                 ),
             )
             new_id = cursor.fetchone()['id']

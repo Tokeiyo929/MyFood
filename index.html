@@ -24,11 +24,11 @@
         <div class="meal-details">
           <label class="field">
             <span>产品名称 <em>可选</em></span>
-            <input id="dishName" type="text" placeholder="" autocomplete="off" />
+            <input id="dishName" type="text" autocomplete="off" />
           </label>
           <label class="field">
             <span>生产者 <em>可选</em></span>
-            <input id="brandName" type="text" placeholder="" autocomplete="off" />
+            <input id="brandName" type="text" autocomplete="off" />
           </label>
         </div>
       </section>
@@ -38,7 +38,7 @@
       <section class="flavor-preference-section">
         <div class="flavor-preference-layout">
           <div id="flavors" class="flavor-wheel"></div>
-          <div class="preference-panel vertical-layout" id="preference"></div>
+          <div class="preference-panel" id="preference"></div>
         </div>
         <label class="field dislike-reason" id="dislikeReasonField" hidden>
           <span>难吃理由 <b class="required-mark">*</b></span>
@@ -62,20 +62,17 @@
     </form>
 
     <section class="recent-section">
-      <div class="section-heading"></div>
-       <div class="record-tools"><input id="recordSearch" type="text" placeholder="" /><button id="clearSearch" type="button" aria-label="清除搜索">×</button></div>
+       <div class="record-tools"><input id="recordSearch" type="text" /><button id="clearSearch" type="button" aria-label="清除搜索">×</button></div>
       <div id="records" class="records"></div>
       <p id="emptyState" class="empty-state">还没有记录。吃完就记一下，之后更容易想起。</p>
     </section>
     </section>
 
     <section id="tagsView" class="app-view catalog-view" hidden>
-      <h1 class="catalog-title" aria-hidden="true"></h1>
       <div id="allTags" class="catalog-list"></div>
     </section>
 
     <section id="ingredientsView" class="app-view catalog-view" hidden>
-      <h1 class="catalog-title" aria-hidden="true"></h1>
       <div class="catalog-add-row"><input id="catalogIngredientInput" type="text" placeholder="添加原料" autocomplete="off" /><button id="addCatalogIngredient" type="button">添加</button></div>
       <div id="allIngredients" class="catalog-list"></div>
     </section>
