@@ -8,7 +8,7 @@ let settings;
 let currentPreference;
 let draggingFlavor;
 
-const FLAVOR_WHEEL = {size: 220, center: 110, radius: 76, labelRadius: 98, handleRadius: 7};
+const FLAVOR_WHEEL = {size: 240, center: 120, radius: 83, labelRadius: 99, handleRadius: 7};
 
 const $ = selector => document.querySelector(selector);
 const values = object => Object.values(object);
@@ -33,7 +33,7 @@ function renderOptions() {
     const min = preferenceLevels[0].level;
     const max = preferenceLevels[preferenceLevels.length - 1].level;
     const step = preferenceLevels[1].level - min;
-    $('#preference').innerHTML = `<div class="preference-status"><span id="preferenceFace" aria-hidden="true"></span></div><input id="preferenceSlider" type="range" min="${min}" max="${max}" step="${step}" value="${settings.preferences.good.level}" aria-label="偏好程度" /><span id="preferenceLabel"></span>`;
+    $('#preference').innerHTML = `<span id="preferenceFace" aria-hidden="true"></span><input id="preferenceSlider" type="range" min="${min}" max="${max}" step="${step}" value="${settings.preferences.good.level}" aria-label="偏好程度" /><span id="preferenceLabel"></span>`;
     updatePreference(settings.preferences.good.value);
     updatePreferenceSlider();
 }
@@ -50,8 +50,8 @@ function renderFlavorWheel() {
         return `${wheel.center + Math.cos(point.angle) * distance},${wheel.center + Math.sin(point.angle) * distance}`;
     }).join(' ');
     const outline = points.map(point => `${point.x},${point.y}`).join(' ');
-    $('#flavors').innerHTML = `<svg class="flavor-radar" viewBox="0 0 ${wheel.size} ${wheel.size}" role="img" aria-label="五维味道转盘"><polygon class="flavor-grid" points="${outline}" />${points.map(point => `<line class="flavor-axis-line" x1="${wheel.center}" y1="${wheel.center}" x2="${point.x}" y2="${point.y}" /><text x="${wheel.center + Math.cos(point.angle) * wheel.labelRadius}" y="${wheel.center + Math.sin(point.angle) * wheel.labelRadius}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(formatFlavorName(point.value, flavorLevels[point.value]))}</text>`).join('')}<polygon class="flavor-value" points="${pointString(flavorLevels)}" />${points.map(point => { const x = wheel.center + Math.cos(point.angle) * wheel.radius * flavorLevels[point.value] / scale.max_level; const y = wheel.center + Math.sin(point.angle) * wheel.radius * flavorLevels[point.value] / scale.max_level; return `<circle class="flavor-hit" data-flavor="${escapeHtml(point.value)}" cx="${x}" cy="${y}" r="18" /><circle class="flavor-handle" cx="${x}" cy="${y}" r="${wheel.handleRadius}" />`; }).join('')}</svg><button type="button" class="flavor-reset" id="resetFlavors" aria-label="重置味道默认值" title="重置默认"><span aria-hidden="true">↻</span></button>`;
-    $('#flavors').querySelectorAll('.flavor-hit').forEach(handle => handle.addEventListener('pointerdown', startFlavorDrag));
+    $('#flavors').innerHTML = `<svg class="flavor-radar" viewBox="0 0 ${wheel.size} ${wheel.size}" role="img" aria-label="五维味道转盘"><polygon class="flavor-grid" points="${outline}" />${points.map(point => { const labelRadius = ['甜', '咸'].includes(point.value) ? wheel.radius + 24 : point.value === '酸' ? wheel.radius + 14 : wheel.radius + 20; return `<line class="flavor-axis-line" x1="${wheel.center}" y1="${wheel.center}" x2="${point.x}" y2="${point.y}" /><text x="${wheel.center + Math.cos(point.angle) * labelRadius}" y="${wheel.center + Math.sin(point.angle) * labelRadius}" text-anchor="middle" dominant-baseline="middle">${escapeHtml(formatFlavorName(point.value, flavorLevels[point.value]))}</text>`; }).join('')}<polygon class="flavor-value" points="${pointString(flavorLevels)}" />${points.map(point => { const x = wheel.center + Math.cos(point.angle) * wheel.radius * flavorLevels[point.value] / scale.max_level; const y = wheel.center + Math.sin(point.angle) * wheel.radius * flavorLevels[point.value] / scale.max_level; return `<line class="flavor-slider-hit" data-flavor="${escapeHtml(point.value)}" x1="${wheel.center}" y1="${wheel.center}" x2="${point.x}" y2="${point.y}" /><circle class="flavor-handle" cx="${x}" cy="${y}" r="${wheel.handleRadius}" />`; }).join('')}</svg><button type="button" class="flavor-reset" id="resetFlavors" aria-label="重置味道默认值" title="重置默认"><span aria-hidden="true">↻</span></button>`;
+    $('#flavors').querySelectorAll('.flavor-slider-hit').forEach(handle => handle.addEventListener('pointerdown', startFlavorDrag));
     $('#resetFlavors').addEventListener('click', () => {
         settings.flavors.forEach(flavor => { flavorLevels[flavor] = settings.flavor_scale.default_level; });
         renderFlavorWheel();
