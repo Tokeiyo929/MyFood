@@ -3,6 +3,7 @@ const ingredients = [];
 const availableIngredients = [];
 const categories = [];
 const availableCategories = [];
+const expandedCategoryParents = new Set();
 const flavorLevels = {};
 let settings;
 let currentPreference;
@@ -142,7 +143,12 @@ function addCategory(value) {
 }
 
 function renderCatalogs() {
-    $('#allTags').innerHTML = availableCategories.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
+    const groupedCategories = availableCategories.reduce((groups, item) => {
+        const parent = item.parentcategories || '未分类';
+        (groups[parent] ||= []).push(item);
+        return groups;
+    }, {});
+    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParents.has(parent) ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParents.has(parent)}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('')}</div></section>`).join('');
     const query = $('#catalogIngredientInput').value.trim().toLowerCase();
     $('#allIngredients').innerHTML = availableIngredients.filter(item => !query || item.name.toLowerCase().includes(query)).map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
 }
@@ -277,6 +283,13 @@ $('#catalogIngredientInput').addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
 });
 $('#catalogIngredientInput').addEventListener('input', renderCatalogs);
+$('#allTags').addEventListener('click', event => {
+    const header = event.target.closest('[data-parent-category]');
+    if (!header) return;
+    const parent = header.dataset.parentCategory;
+    expandedCategoryParents.has(parent) ? expandedCategoryParents.delete(parent) : expandedCategoryParents.add(parent);
+    renderCatalogs();
+});
 $('#preference').addEventListener('input', event => {
     if (event.target.id !== 'preferenceSlider') return;
     updatePreference(preferenceAt(Number(event.target.value)).value);
