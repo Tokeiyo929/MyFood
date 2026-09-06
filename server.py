@@ -36,6 +36,7 @@ def db():
             cursor.execute("ALTER TABLE categories ADD COLUMN IF NOT EXISTS parentcategories VARCHAR(255) NOT NULL DEFAULT ''")
             cursor.execute('UPDATE categories SET parentcategories = %s WHERE parentcategories = %s', (CONFIG['default_parentcategory'], ''))
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
+            cursor.execute("SELECT setval(pg_get_serial_sequence('categories', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM categories")
             cursor.executemany(
                 "INSERT INTO categories (name, parentcategories) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
                 [(category['name'], category['parentcategories']) for category in CONFIG['initial_categories']],
