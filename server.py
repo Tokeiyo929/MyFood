@@ -26,8 +26,11 @@ def db():
             cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS price NUMERIC(10, 2)")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS dislike_reason VARCHAR(500) NOT NULL DEFAULT ''")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS good_reason VARCHAR(500) NOT NULL DEFAULT ''")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS reason VARCHAR(500) NOT NULL DEFAULT ''")
+            cursor.execute('UPDATE foods SET preference = %s WHERE preference = %s', (CONFIG['preferences']['excellent']['value'], '很好吃'))
+            cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'good_reason') OR EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'dislike_reason') THEN EXECUTE 'UPDATE foods SET reason = COALESCE(NULLIF(good_reason, ''''), NULLIF(dislike_reason, ''''), '''') WHERE reason = '''''; END IF; END $$")
+            cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS dislike_reason")
+            cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS good_reason")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS repurchase_count INTEGER NOT NULL DEFAULT 0")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS categories TEXT NOT NULL DEFAULT '[]'")
             cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'tags') THEN UPDATE foods SET categories = tags WHERE categories = '[]' AND tags <> '[]'; ALTER TABLE foods DROP COLUMN tags; END IF; END $$")
@@ -122,7 +125,7 @@ class Handler(SimpleHTTPRequestHandler):
                 )
                 total = cursor.fetchone()['total']
                 cursor.execute(
-                    'SELECT id, name, brand_name, price, categories, ingredients, flavors, preference, dislike_reason, good_reason, repurchase_count, image_path '
+                    'SELECT id, name, brand_name, price, categories, ingredients, flavors, preference, reason, repurchase_count, image_path '
                     'FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s '
                     'ORDER BY id DESC LIMIT %s OFFSET %s',
                     (f'%{search}%', f'%{search}%', limit, offset),
@@ -209,8 +212,8 @@ class Handler(SimpleHTTPRequestHandler):
         conn = db()
         with conn.cursor() as cursor:
             cursor.execute(
-                'INSERT INTO foods (name, brand_name, price, categories, ingredients, flavors, preference, dislike_reason, good_reason, image_path) '
-                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
+                'INSERT INTO foods (name, brand_name, price, categories, ingredients, flavors, preference, reason, image_path) '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
                 (
                     item['name'],
                     item['brand_name'],
@@ -219,8 +222,7 @@ class Handler(SimpleHTTPRequestHandler):
                     json.dumps(item['ingredients'], ensure_ascii=False),
                     json.dumps(item['flavors'], ensure_ascii=False),
                     item['preference'],
-                    item['dislike_reason'],
-                    item['good_reason'],
+                    item.get('reason', ''),
                     item['image_path'],
                 ),
             )
@@ -234,10 +236,10 @@ class Handler(SimpleHTTPRequestHandler):
         conn = db()
         with conn.cursor() as cursor:
             cursor.execute(
-                'UPDATE foods SET preference = %s, dislike_reason = %s, repurchase_count = repurchase_count + %s WHERE id = %s',
+                'UPDATE foods SET preference = %s, reason = %s, repurchase_count = repurchase_count + %s WHERE id = %s',
                 (
                     item['preference'],
-                    item.get('dislike_reason', ''),
+                    item.get('reason', ''),
                     1 if item['preference'] == CONFIG['preferences']['good']['value'] else 0,
                     food_id,
                 ),

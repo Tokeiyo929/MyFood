@@ -18,7 +18,7 @@
     "high_threshold": 66
   },
   "preferences": {
-    "excellent": {"value": "很好吃", "label": "推荐吃", "level": 100, "face": "😄"},
+    "excellent": {"value": "推荐吃", "label": "推荐吃", "level": 100, "face": "😄"},
     "good": {"value": "偏好吃", "label": "偏好吃", "level": 50, "face": "🙂"},
     "bad": {"value": "偏难吃", "label": "偏难吃", "level": 0, "face": "😞"}
   },

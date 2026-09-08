@@ -217,11 +217,11 @@ function renderRecords() {
     document.querySelectorAll('.record').forEach(card => {
         const record = records.find(item => String(item.id) === card.dataset.id);
         if (record.preference === bad.value) {
-            card.querySelector('.repurchase-actions').innerHTML = `<div class="dislike-reason-display">难吃理由：${escapeHtml(record.dislike_reason)}</div>`;
+            card.querySelector('.repurchase-actions').innerHTML = `<div class="dislike-reason-display">难吃理由：${escapeHtml(record.reason)}</div>`;
             return;
         }
         if (record.preference === excellent.value) {
-            card.querySelector('.repurchase-actions').innerHTML = `<div class="good-reason-display">推荐理由：${escapeHtml(record.good_reason)}</div>`;
+            card.querySelector('.repurchase-actions').innerHTML = `<div class="good-reason-display">推荐理由：${escapeHtml(record.reason)}</div>`;
             return;
         }
         card.querySelector('.repurchase-actions').insertAdjacentHTML('beforeend', `<span class="repurchase-count">已复购 ${record.repurchase_count} 次</span>`);
@@ -345,7 +345,7 @@ document.addEventListener('submit', async event => {
     const card = form.closest('.record');
     const reason = form.querySelector('input').value.trim();
     if (!reason) return;
-    await fetch(`/api/foods/${card.dataset.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({preference: settings.preferences.bad.value, dislike_reason: reason})});
+    await fetch(`/api/foods/${card.dataset.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({preference: settings.preferences.bad.value, reason})});
     await loadRecords();
 }, true);
 
@@ -400,8 +400,7 @@ $('#foodForm').addEventListener('submit', async event => {
             ingredients: [...ingredients],
             flavors: Object.entries(flavorLevels).filter(([, level]) => level > settings.flavor_scale.min_level).map(([name, level]) => ({name, level})),
             preference: currentPreference,
-            dislike_reason: $('#dislikeReason').value.trim(),
-            good_reason: $('#goodReason').value.trim(),
+            reason: currentPreference === settings.preferences.bad.value ? $('#dislikeReason').value.trim() : $('#goodReason').value.trim(),
             image_path: imagePath,
         };
         const response = await fetch('/api/foods', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(record)});
