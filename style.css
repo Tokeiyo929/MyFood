@@ -29,6 +29,8 @@ button { cursor: pointer; }
 .catalog-group.expanded .catalog-group-items { display: grid; }
 .catalog-group-items .catalog-item { width: 100%; text-align: center; }
 .catalog-item { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+.catalog-group-items .catalog-item { display: grid; gap: 6px; }
+.catalog-group-items .catalog-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 7px; }
 .catalog-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .catalog-add-row input { flex: 1; }
 .catalog-add-row button { min-width: 64px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 700; }

@@ -112,6 +112,7 @@ class Handler(SimpleHTTPRequestHandler):
             query = parse_qs(parsed_path.query)
             page = max(int(query.get('page', ['1'])[0]), 1)
             search = query.get('search', [''])[0].strip()
+            category = query.get('category', [''])[0].strip()
             limit = min(
                 max(int(query.get('limit', [CONFIG['pagination']['page_size']])[0]), 1),
                 CONFIG['pagination']['max_page_size'],
@@ -119,16 +120,18 @@ class Handler(SimpleHTTPRequestHandler):
             offset = (page - 1) * limit
             conn = db()
             with conn.cursor() as cursor:
+                category_filter = ' AND categories::jsonb ?| ARRAY(SELECT name FROM categories WHERE parentcategories = %s)' if category else ''
+                filter_params = [f'%{search}%', f'%{search}%'] + ([category] if category else [])
                 cursor.execute(
-                    'SELECT COUNT(*) AS total FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s',
-                    (f'%{search}%', f'%{search}%'),
+                    f'SELECT COUNT(*) AS total FROM foods WHERE (name ILIKE %s OR brand_name ILIKE %s){category_filter}',
+                    filter_params,
                 )
                 total = cursor.fetchone()['total']
                 cursor.execute(
                     'SELECT id, name, brand_name, price, categories, ingredients, flavors, preference, reason, repurchase_count, image_path '
-                    'FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s '
+                    f'FROM foods WHERE (name ILIKE %s OR brand_name ILIKE %s){category_filter} '
                     'ORDER BY id DESC LIMIT %s OFFSET %s',
-                    (f'%{search}%', f'%{search}%', limit, offset),
+                    filter_params + [limit, offset],
                 )
                 rows = cursor.fetchall()
             conn.close()

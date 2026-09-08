@@ -7,6 +7,7 @@ let loadingIngredients = false;
 const categories = [];
 const availableCategories = [];
 let expandedCategoryParent = null;
+const categoryFoods = {};
 const flavorLevels = {};
 let settings;
 let currentPreference;
@@ -150,7 +151,7 @@ function renderCatalogs() {
         (groups[item.parentcategories] ||= []).push(item);
         return groups;
     }, {});
-    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('')}</div></section>`).join('');
+    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => { const food = (categoryFoods[parent] || []).find(value => value.categories.includes(item.name)); return `<div class="catalog-item">${escapeHtml(item.name)}${food?.image_path ? `<img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" />` : ''}</div>`; }).join('')}</div></section>`).join('');
     const query = $('#catalogIngredientInput').value.trim().toLowerCase();
     $('#allIngredients').innerHTML = availableIngredients
         .filter(item => !query || item.name.toLowerCase().includes(query))
@@ -201,7 +202,6 @@ function renderRecords() {
                     <div class="record-side"><div class="record-summary">
                         ${record.brand_name ? `<span class="record-brand">${escapeHtml(record.brand_name)}</span>` : ''}
                         ${visibleFlavors.length ? `<div class="record-tags">${visibleFlavors.map(flavor => `<span class="record-tag">${escapeHtml(formatFlavorName(flavor.name, flavor.level))}</span>`).join('')}</div>` : ''}
-                        ${record.categories.length ? `<div class="record-user-tags">${record.categories.map(value => `<span class="record-tag">${escapeHtml(value)}</span>`).join('')}</div>` : ''}
                     </div></div>
                     <div class="repurchase-actions">
                         <button class="repurchase-choice" data-value="${good.value}" type="button">${good.label}</button>
@@ -299,6 +299,17 @@ $('#allTags').addEventListener('click', event => {
     const parent = header.dataset.parentCategory;
     expandedCategoryParent = expandedCategoryParent === parent ? null : parent;
     renderCatalogs();
+    if (expandedCategoryParent === parent && !categoryFoods[parent]) {
+        fetch(`/api/foods?category=${encodeURIComponent(parent)}&limit=50`).then(response => response.json()).then(result => {
+            categoryFoods[parent] = result.items;
+            renderCatalogs();
+        });
+    }
+    if (expandedCategoryParent === parent) {
+        const nextHeader = document.querySelector(`[data-parent-category="${CSS.escape(parent)}"]`);
+        const top = nextHeader.getBoundingClientRect().top + window.scrollY - 16;
+        window.scrollTo({top: Math.max(0, top), behavior: 'smooth'});
+    }
 });
 $('#preference').addEventListener('input', event => {
     if (event.target.id !== 'preferenceSlider') return;
