@@ -32,6 +32,10 @@
           </label>
         </div>
       </section>
+      <section class="field">
+        <span>价格 <em>可选</em></span>
+        <input id="price" type="text" inputmode="decimal" autocomplete="off" />
+      </section>
 
       <section class="field"><span>产品类别</span><input id="tagInput" type="search" placeholder="搜索产品类别" autocomplete="off" /><div class="chips" id="tagChips" aria-live="polite"></div><div class="tag-suggestions" id="tagSuggestions"></div></section>
 
@@ -45,7 +49,7 @@
           <input id="dislikeReason" type="text" autocomplete="off" />
         </label>
         <label class="field dislike-reason" id="goodReasonField" hidden>
-          <span>好吃理由 <b class="required-mark">*</b></span>
+          <span>推荐理由 <b class="required-mark">*</b></span>
           <input id="goodReason" type="text" autocomplete="off" />
         </label>
       </section>
@@ -82,6 +86,7 @@
     <button type="button" class="active" data-view="recordsView">记录</button>
     <button type="button" data-view="ingredientsView">原料</button>
   </nav>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script src="app.js"></script>
 </body>
 </html>

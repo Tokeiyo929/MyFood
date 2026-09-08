@@ -1,6 +1,9 @@
 const records = [];
 const ingredients = [];
 const availableIngredients = [];
+let ingredientPage = 0;
+let ingredientTotal = 0;
+let loadingIngredients = false;
 const categories = [];
 const availableCategories = [];
 const expandedCategoryParents = new Set();
@@ -12,6 +15,11 @@ let draggingFlavor;
 const FLAVOR_WHEEL = {size: 240, center: 120, radius: 83, labelRadius: 99, handleRadius: 7};
 
 const $ = selector => document.querySelector(selector);
+const fetchWithTimeout = (url, options = {}, timeout = 10000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    return fetch(url, {...options, signal: controller.signal}).finally(() => clearTimeout(timer));
+};
 const escapeHtml = value => value.replace(/[&<>"']/g, char => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -149,7 +157,11 @@ function renderCatalogs() {
     }, {});
     $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParents.has(parent) ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParents.has(parent)}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('')}</div></section>`).join('');
     const query = $('#catalogIngredientInput').value.trim().toLowerCase();
-    $('#allIngredients').innerHTML = availableIngredients.filter(item => !query || item.name.toLowerCase().includes(query)).map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
+    $('#allIngredients').innerHTML = availableIngredients
+        .filter(item => !query || item.name.toLowerCase().includes(query))
+        .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', {sensitivity: 'base'}))
+        .map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`)
+        .join('');
 }
 
 async function addCatalogIngredient() {
@@ -165,6 +177,11 @@ async function addCatalogIngredient() {
     input.value = '';
     renderCatalogs();
     renderIngredientSuggestions();
+    const toast = $('#toast');
+    toast.textContent = '添加成功';
+    toast.classList.add('show');
+    clearTimeout(window.catalogIngredientToastTimer);
+    window.catalogIngredientToastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
     input.focus();
 }
 
@@ -209,10 +226,10 @@ function renderRecords() {
             return;
         }
         if (record.preference === excellent.value) {
-            card.querySelector('.repurchase-actions').innerHTML = `<div class="good-reason-display">好吃理由：${escapeHtml(record.good_reason)}</div>`;
+            card.querySelector('.repurchase-actions').innerHTML = `<div class="good-reason-display">推荐理由：${escapeHtml(record.good_reason)}</div>`;
             return;
         }
-        card.querySelector(`.repurchase-choice[data-value="${good.value}"]`).textContent = '复购仍然好吃';
+        card.querySelector(`.repurchase-choice[data-value="${good.value}"]`).textContent = '偏好吃';
         card.querySelector('.repurchase-actions').insertAdjacentHTML('beforeend', `<span class="repurchase-count">已复购 ${record.repurchase_count} 次</span>`);
     });
 }
@@ -286,7 +303,9 @@ $('#allTags').addEventListener('click', event => {
     const header = event.target.closest('[data-parent-category]');
     if (!header) return;
     const parent = header.dataset.parentCategory;
-    expandedCategoryParents.has(parent) ? expandedCategoryParents.delete(parent) : expandedCategoryParents.add(parent);
+    const expanded = expandedCategoryParents.has(parent);
+    expandedCategoryParents.clear();
+    if (!expanded) expandedCategoryParents.add(parent);
     renderCatalogs();
 });
 $('#preference').addEventListener('input', event => {
@@ -371,45 +390,54 @@ $('#foodForm').addEventListener('submit', async event => {
     const saveButton = $('.save-fixed');
     saveButton.disabled = true;
     saveButton.textContent = '保存中';
-    const file = $('#imageInput').files[0];
-    let imagePath = '';
-    if (file) {
-        const form = new FormData();
-        form.append('image', await compressImage(file), 'food.jpg');
-        imagePath = (await (await fetch('/api/upload', {method: 'POST', body: form})).json()).path;
+    try {
+        const file = $('#imageInput').files[0];
+        let imagePath = '';
+        if (file) {
+            const form = new FormData();
+            form.append('image', await compressImage(file), 'food.jpg');
+            const uploadResponse = await fetchWithTimeout('/api/upload', {method: 'POST', body: form});
+            if (!uploadResponse.ok) throw new Error('图片上传失败');
+            imagePath = (await uploadResponse.json()).path;
+        }
+        const record = {
+            name: $('#dishName').value.trim(),
+            brand_name: $('#brandName').value.trim(),
+            price: $('#price').value === '' ? null : Number($('#price').value),
+            categories: [...categories],
+            ingredients: [...ingredients],
+            flavors: Object.entries(flavorLevels).filter(([, level]) => level > settings.flavor_scale.min_level).map(([name, level]) => ({name, level})),
+            preference: currentPreference,
+            dislike_reason: $('#dislikeReason').value.trim(),
+            good_reason: $('#goodReason').value.trim(),
+            image_path: imagePath,
+        };
+        const response = await fetchWithTimeout('/api/foods', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(record)});
+        if (!response.ok) throw new Error('保存请求失败');
+        await loadRecords();
+        event.target.reset();
+        $('#imagePreview').hidden = true;
+        ingredients.length = 0;
+        categories.length = 0;
+        settings.flavors.forEach(flavor => { flavorLevels[flavor] = settings.flavor_scale.default_level; });
+        $('#dislikeReasonField').hidden = true;
+        $('#dislikeReason').required = false;
+        $('#goodReasonField').hidden = true;
+        $('#goodReason').required = false;
+        $('#preferenceSlider').value = settings.preferences.good.level;
+        updatePreference(settings.preferences.good.value);
+        updatePreferenceSlider();
+        renderFlavorWheel();
+        renderIngredients();
+        renderCategories();
+        renderCategorySuggestions();
+        $('#formError').textContent = '';
+    } catch (error) {
+        $('#formError').textContent = error.name === 'AbortError' ? '保存超时，请检查网络后重试' : `保存失败：${error.message}`;
+    } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = '保存记录';
     }
-    const record = {
-        name: $('#dishName').value.trim(),
-        brand_name: $('#brandName').value.trim(),
-        categories: [...categories],
-        ingredients: [...ingredients],
-        flavors: Object.entries(flavorLevels).filter(([, level]) => level > settings.flavor_scale.min_level).map(([name, level]) => ({name, level})),
-        preference: currentPreference,
-        dislike_reason: $('#dislikeReason').value.trim(),
-        good_reason: $('#goodReason').value.trim(),
-        image_path: imagePath,
-    };
-    await fetch('/api/foods', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(record)});
-    await loadRecords();
-    event.target.reset();
-    $('#imagePreview').hidden = true;
-    ingredients.length = 0;
-    categories.length = 0;
-    settings.flavors.forEach(flavor => { flavorLevels[flavor] = settings.flavor_scale.default_level; });
-    $('#dislikeReasonField').hidden = true;
-    $('#dislikeReason').required = false;
-    $('#goodReasonField').hidden = true;
-    $('#goodReason').required = false;
-    $('#preferenceSlider').value = settings.preferences.good.level;
-    updatePreference(settings.preferences.good.value);
-    updatePreferenceSlider();
-    renderFlavorWheel();
-    renderIngredients();
-    renderCategories();
-    renderCategorySuggestions();
-    $('#formError').textContent = '';
-    saveButton.disabled = false;
-    saveButton.textContent = '保存记录';
 });
 
 $('#recordSearch').addEventListener('input', () => loadRecords(true));
@@ -421,6 +449,7 @@ $('#clearSearch').addEventListener('click', () => {
 window.addEventListener('scroll', () => {
     if (!settings) return;
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - settings.pagination.scroll_threshold) loadRecords(false);
+    if (!document.querySelector('#ingredientsView[hidden]') && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - settings.pagination.scroll_threshold) loadIngredients(false);
 });
 
 async function loadCategories() {
@@ -430,9 +459,15 @@ async function loadCategories() {
     renderCatalogs();
 }
 
-async function loadIngredients() {
-    const result = await (await fetch('/api/ingredients')).json();
+async function loadIngredients(reset = true) {
+    if (loadingIngredients || (!reset && availableIngredients.length >= ingredientTotal)) return;
+    loadingIngredients = true;
+    if (reset) { availableIngredients.length = 0; ingredientPage = 0; }
+    const result = await (await fetch(`/api/ingredients?page=${ingredientPage + 1}&limit=200`)).json();
     availableIngredients.push(...result.items);
+    ingredientPage = result.page;
+    ingredientTotal = result.total;
+    loadingIngredients = false;
     renderIngredientSuggestions();
     renderCatalogs();
 }

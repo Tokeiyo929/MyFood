@@ -25,6 +25,7 @@ def db():
         with conn.cursor() as cursor:
             cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS price NUMERIC(10, 2)")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS dislike_reason VARCHAR(500) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS good_reason VARCHAR(500) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS repurchase_count INTEGER NOT NULL DEFAULT 0")
@@ -121,7 +122,7 @@ class Handler(SimpleHTTPRequestHandler):
                 )
                 total = cursor.fetchone()['total']
                 cursor.execute(
-                    'SELECT id, name, brand_name, categories, ingredients, flavors, preference, dislike_reason, good_reason, repurchase_count, image_path '
+                    'SELECT id, name, brand_name, price, categories, ingredients, flavors, preference, dislike_reason, good_reason, repurchase_count, image_path '
                     'FROM foods WHERE name ILIKE %s OR brand_name ILIKE %s '
                     'ORDER BY id DESC LIMIT %s OFFSET %s',
                     (f'%{search}%', f'%{search}%', limit, offset),
@@ -132,6 +133,7 @@ class Handler(SimpleHTTPRequestHandler):
                 'items': [
                     {
                         **row,
+                        'price': float(row['price']) if row['price'] is not None else None,
                         'ingredients': json.loads(row['ingredients']),
                         'flavors': json.loads(row['flavors']),
                         'categories': json.loads(row['categories']),
@@ -150,13 +152,19 @@ class Handler(SimpleHTTPRequestHandler):
             conn.close()
             self.send_json({'items': rows})
             return
-        if self.path == '/api/ingredients':
+        if parsed_path.path == '/api/ingredients':
+            query = parse_qs(urlparse(self.path).query)
+            page = max(int(query.get('page', ['1'])[0]), 1)
+            limit = min(max(int(query.get('limit', ['200'])[0]), 1), 200)
+            offset = (page - 1) * limit
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('SELECT id, name FROM ingredients ORDER BY id')
+                cursor.execute('SELECT COUNT(*) AS total FROM ingredients')
+                total = cursor.fetchone()['total']
+                cursor.execute('SELECT id, name FROM ingredients ORDER BY id LIMIT %s OFFSET %s', (limit, offset))
                 rows = cursor.fetchall()
             conn.close()
-            self.send_json({'items': rows})
+            self.send_json({'items': rows, 'total': total, 'page': page, 'limit': limit})
             return
         super().do_GET()
 
@@ -200,11 +208,12 @@ class Handler(SimpleHTTPRequestHandler):
         conn = db()
         with conn.cursor() as cursor:
             cursor.execute(
-                'INSERT INTO foods (name, brand_name, categories, ingredients, flavors, preference, dislike_reason, good_reason, image_path) '
-                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
+                'INSERT INTO foods (name, brand_name, price, categories, ingredients, flavors, preference, dislike_reason, good_reason, image_path) '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
                 (
                     item['name'],
                     item['brand_name'],
+                    item.get('price'),
                     json.dumps(item['categories'], ensure_ascii=False),
                     json.dumps(item['ingredients'], ensure_ascii=False),
                     json.dumps(item['flavors'], ensure_ascii=False),
