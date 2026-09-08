@@ -56,8 +56,6 @@ input { width: 100%; min-height: 40px; padding: 0 13px; border: 1px solid var(--
 #foodForm > .field > input { width: 340px; max-width: 100%; }
 #foodForm > .field { width: 340px; max-width: 100%; }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
-input#price { -moz-appearance: textfield; }
-input#price::-webkit-inner-spin-button, input#price::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
 .chips { display: flex; min-width: 0; max-width: 100%; flex-wrap: nowrap; gap: 8px; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; white-space: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior-x: contain; }
 .chips::-webkit-scrollbar { display: none; }
 .chips .chip { flex: 0 0 auto; }

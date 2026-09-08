@@ -1,6 +1,7 @@
 {
   "pagination": {
     "page_size": 5,
+    "ingredient_page_size": 200,
     "max_page_size": 50,
     "scroll_threshold": 160
   },

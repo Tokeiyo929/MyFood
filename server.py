@@ -153,9 +153,10 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({'items': rows})
             return
         if parsed_path.path == '/api/ingredients':
-            query = parse_qs(urlparse(self.path).query)
+            query = parse_qs(parsed_path.query)
             page = max(int(query.get('page', ['1'])[0]), 1)
-            limit = min(max(int(query.get('limit', ['200'])[0]), 1), 200)
+            page_size = CONFIG['pagination']['ingredient_page_size']
+            limit = min(max(int(query.get('limit', [page_size])[0]), 1), page_size)
             offset = (page - 1) * limit
             conn = db()
             with conn.cursor() as cursor:
