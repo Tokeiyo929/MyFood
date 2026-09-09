@@ -26,8 +26,8 @@ const escapeHtml = value => value.replace(/[&<>"']/g, char => ({
 const preferences = () => Object.values(settings.preferences).sort((a, b) => a.level - b.level);
 const preferenceAt = level => preferences().find(item => item.level === level);
 const formatFlavorName = (name, level) => {
-    const {low_threshold, high_threshold} = settings.flavor_scale;
-    return level < low_threshold ? `不${name}` : level > high_threshold ? `太${name}` : name;
+    const {low_threshold, mid_threshold, high_threshold} = settings.flavor_scale;
+    return level < low_threshold ? `不${name}` : level < mid_threshold ? `微${name}` : level < high_threshold ? name : `太${name}`;
 };
 
 function renderOptions() {
@@ -151,7 +151,7 @@ function renderCatalogs() {
         (groups[item.parentcategories] ||= []).push(item);
         return groups;
     }, {});
-    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => { const food = (categoryFoods[parent] || []).find(value => value.categories.includes(item.name)); return `<div class="catalog-item">${escapeHtml(item.name)}${food?.image_path ? `<img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" />` : ''}</div>`; }).join('')}</div></section>`).join('');
+    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => { const food = categoryFoods[parent]?.find(value => value.categories.includes(item.name)); return `<div class="catalog-item">${escapeHtml(item.name)}${food?.image_path ? `<span class="catalog-image-loading" aria-label="图片加载中"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20V6.5Zm6 1.6v7.8m6-7.8v7.8M3 6.5l6 2.6 6-2.6 6 2.6M3 20l6-2.5 6 2.5 6-3"/></svg></span><img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" onload="this.previousElementSibling.hidden=true" />` : ''}</div>`; }).join('')}</div></section>`).join('');
     const query = $('#catalogIngredientInput').value.trim().toLowerCase();
     $('#allIngredients').innerHTML = availableIngredients
         .filter(item => !query || item.name.toLowerCase().includes(query))
@@ -240,7 +240,7 @@ async function loadRecords(reset = true) {
     if (loadingRecords || (!reset && !hasMoreRecords)) return;
     loadingRecords = true;
     const nextPage = reset ? 1 : page + 1;
-    const params = new URLSearchParams({page: nextPage, limit: settings.pagination.page_size, search: $('#recordSearch').value.trim()});
+    const params = new URLSearchParams({page: nextPage, limit: settings.pagination.page_size, search: $('#recordSearch').value.replace(/\s+/g, ' ').trim()});
     const result = await (await fetch(`/api/foods?${params}`)).json();
     if (reset) records.length = 0;
     records.push(...result.items);
@@ -300,15 +300,14 @@ $('#allTags').addEventListener('click', event => {
     expandedCategoryParent = expandedCategoryParent === parent ? null : parent;
     renderCatalogs();
     if (expandedCategoryParent === parent && !categoryFoods[parent]) {
-        fetch(`/api/foods?category=${encodeURIComponent(parent)}&limit=50`).then(response => response.json()).then(result => {
+        fetch(`/api/foods?category=${encodeURIComponent(parent)}&limit=${settings.pagination.max_page_size}`).then(response => response.json()).then(result => {
             categoryFoods[parent] = result.items;
             renderCatalogs();
         });
     }
     if (expandedCategoryParent === parent) {
         const nextHeader = document.querySelector(`[data-parent-category="${CSS.escape(parent)}"]`);
-        const top = nextHeader.getBoundingClientRect().top + window.scrollY - 16;
-        window.scrollTo({top: Math.max(0, top), behavior: 'smooth'});
+        nextHeader.scrollIntoView({behavior: 'smooth', block: 'start'});
     }
 });
 $('#preference').addEventListener('input', event => {

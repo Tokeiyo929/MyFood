@@ -31,6 +31,9 @@ button { cursor: pointer; }
 .catalog-item { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
 .catalog-group-items .catalog-item { display: grid; gap: 6px; }
 .catalog-group-items .catalog-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 7px; }
+.catalog-image-loading { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 7px; background: #eee7ff; color: var(--accent); }
+.catalog-image-loading[hidden] { display: none; }
+.catalog-image-loading svg { width: 42%; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
 .catalog-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .catalog-add-row input { flex: 1; }
 .catalog-add-row button { min-width: 64px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 700; }
@@ -106,7 +109,6 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
 .record-brand { grid-column: 2; grid-row: 1; justify-self: end; font-size: 15px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .record-meta { grid-column: 1; grid-row: 2; color: var(--muted); font-size: 15px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .record-tags { grid-column: 2; grid-row: 2; display: flex; justify-content: flex-end; gap: 8px; }
-.record-user-tags { grid-column: 1 / -1; display: flex; gap: 8px; color: var(--ink); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .record-tag { font-size: 15px; line-height: 1.35; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .preference-good-card { border-left: 5px solid transparent; }
 .preference-excellent-card { border-left: 5px solid var(--good); }
@@ -126,7 +128,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
 .quick-ingredient { flex: 0 0 auto; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-size: 14px; }
 /* 页面文字统一字号，仅保留颜色和字重差异。 */
 .field > span { font-size: 15px; }
-.flavor-radar text, #preferenceLabel, .quick-ingredient, .record-user-tags, .repurchase-count { font-size: 15px; }
+.flavor-radar text, #preferenceLabel, .quick-ingredient, .repurchase-count { font-size: 15px; }
 @media (max-width: 620px) {
   .meal-entry { grid-template-columns: 150px 1fr; height: 150px; gap: 12px; }
   .image-picker { justify-self: auto; }

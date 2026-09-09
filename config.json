@@ -14,8 +14,9 @@
     "default_level": 50,
     "min_level": 0,
     "max_level": 100,
-    "low_threshold": 33,
-    "high_threshold": 66
+    "low_threshold": 25,
+    "mid_threshold": 50,
+    "high_threshold": 75
   },
   "preferences": {
     "excellent": {"value": "推荐吃", "label": "推荐吃", "level": 100, "face": "😄"},
