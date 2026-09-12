@@ -31,7 +31,7 @@ button { cursor: pointer; }
 .catalog-item { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
 .catalog-group-items .catalog-item { display: grid; gap: 6px; }
 .catalog-group-items .catalog-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 7px; }
-.catalog-image-loading { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 7px; background: #eee7ff; color: var(--accent); }
+.catalog-image-loading { display: none; }
 .catalog-image-loading[hidden] { display: none; }
 .catalog-image-loading svg { width: 42%; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
 .catalog-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
