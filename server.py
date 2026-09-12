@@ -6,7 +6,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import psycopg
-from PIL import Image
+from PIL import ExifTags, Image
 from pillow_heif import register_heif_opener
 from psycopg.rows import dict_row
 from qcloud_cos import CosConfig, CosS3Client
@@ -19,6 +19,29 @@ with open(os.path.join(ROOT, 'config.json'), encoding='utf-8') as file:
     CONFIG = json.load(file)
 
 schema_ready = False
+
+
+def coordinate(value, ref):
+    degrees, minutes, seconds = map(float, value)
+    result = degrees + minutes / 60 + seconds / 3600
+    return -result if ref in ('S', 'W') else result
+
+
+def read_image_metadata(file):
+    with Image.open(file) as image:
+        exif = image.getexif()
+        metadata = {}
+        taken_at = exif.get_ifd(ExifTags.IFD.Exif).get(ExifTags.Base.DateTimeOriginal) or exif.get(ExifTags.Base.DateTime)
+        if taken_at:
+            metadata['taken_at'] = taken_at
+        gps = exif.get_ifd(ExifTags.IFD.GPSInfo)
+        latitude, latitude_ref = gps.get(ExifTags.GPS.GPSLatitude), gps.get(ExifTags.GPS.GPSLatitudeRef)
+        if latitude and latitude_ref:
+            metadata['latitude'] = coordinate(latitude, latitude_ref)
+        longitude, longitude_ref = gps.get(ExifTags.GPS.GPSLongitude), gps.get(ExifTags.GPS.GPSLongitudeRef)
+        if longitude and longitude_ref:
+            metadata['longitude'] = coordinate(longitude, longitude_ref)
+        return metadata
 
 
 def db():
@@ -204,25 +227,11 @@ class Handler(SimpleHTTPRequestHandler):
                 },
             )
             item = form['image']
-            metadata_item = form['metadata_image'] if 'metadata_image' in form else item
-            metadata = {}
+            metadata_item = form['metadata_image']
             try:
-                image = Image.open(metadata_item.file)
-                exif = image.getexif()
-                if exif:
-                    metadata['taken_at'] = exif.get(36867) or exif.get(306)
-                    gps = exif.get_ifd(34853)
-                    if gps:
-                        def coordinate(value, ref):
-                            degrees, minutes, seconds = [float(part) for part in value]
-                            result = degrees + minutes / 60 + seconds / 3600
-                            return -result if ref in ('S', 'W') else result
-                        metadata['latitude'] = coordinate(gps[2], gps[1]) if gps.get(2) and gps.get(1) else None
-                        metadata['longitude'] = coordinate(gps[4], gps[3]) if gps.get(4) and gps.get(3) else None
-            except Exception:
+                metadata = read_image_metadata(metadata_item.file)
+            except (OSError, ValueError, TypeError):
                 metadata = {}
-            metadata_item.file.seek(0)
-            item.file.seek(0)
             extension = os.path.splitext(item.filename)[1].lower()
             key = f'myfood/{uuid.uuid4().hex}{extension}'
             self.cos_client().put_object(
@@ -231,7 +240,7 @@ class Handler(SimpleHTTPRequestHandler):
                 Key=key,
                 ContentType=item.type,
             )
-            self.send_json({'path': key, 'metadata': {key: value for key, value in metadata.items() if value is not None}})
+            self.send_json({'path': key, 'metadata': metadata})
             return
         if self.path != '/api/foods':
             self.send_error(404)
@@ -252,7 +261,7 @@ class Handler(SimpleHTTPRequestHandler):
                     item['preference'],
                     item.get('reason', ''),
                     item['image_path'],
-                    json.dumps(item.get('image_metadata', {}), ensure_ascii=False),
+                    json.dumps(item['image_metadata'], ensure_ascii=False),
                 ),
             )
             new_id = cursor.fetchone()['id']

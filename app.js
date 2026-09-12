@@ -151,7 +151,15 @@ function renderCatalogs() {
         (groups[item.parentcategories] ||= []).push(item);
         return groups;
     }, {});
-    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => { const food = categoryFoods[parent]?.find(value => value.categories.includes(item.name)); return `<div class="catalog-item" data-category-name="${escapeHtml(item.name)}" data-parent-category="${escapeHtml(parent)}">${escapeHtml(item.name)}${food?.image_path ? `<span class="catalog-image-loading" aria-label="图片加载中"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20V6.5Zm6 1.6v7.8m6-7.8v7.8M3 6.5l6 2.6 6-2.6 6 2.6M3 20l6-2.5 6 2.5 6-3"/></svg></span><img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" onload="this.previousElementSibling.hidden=true" />` : ''}</div>`; }).join('')}</div></section>`).join('');
+    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) =>
+        `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}">
+            <h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2>
+            <div class="catalog-group-items">${items.map(item => {
+                const food = categoryFoods[parent]?.find(value => value.categories.includes(item.name));
+                return `<div class="catalog-item" data-category-name="${escapeHtml(item.name)}" data-parent-category="${escapeHtml(parent)}">${escapeHtml(item.name)}${food?.image_path ? `<img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" />` : ''}</div>`;
+            }).join('')}</div>
+        </section>`
+    ).join('');
     const query = $('#catalogIngredientInput').value.trim().toLowerCase();
     $('#allIngredients').innerHTML = availableIngredients
         .filter(item => !query || item.name.toLowerCase().includes(query))
@@ -314,8 +322,7 @@ $('#allTags').addEventListener('click', event => {
         });
     }
     if (expandedCategoryParent === parent) {
-        const nextHeader = document.querySelector(`[data-parent-category="${CSS.escape(parent)}"]`);
-        nextHeader.scrollIntoView({behavior: 'smooth', block: 'start'});
+        document.querySelector('.catalog-group.expanded .catalog-group-title').scrollIntoView({behavior: 'smooth', block: 'start'});
     }
 });
 document.querySelectorAll('[data-close-category-modal]').forEach(element => element.addEventListener('click', () => { $('#categoryModal').hidden = true; }));
@@ -413,7 +420,7 @@ $('#foodForm').addEventListener('submit', async event => {
             if (!uploadResponse.ok) throw new Error('图片上传失败');
             const uploadResult = await uploadResponse.json();
             imagePath = uploadResult.path;
-            imageMetadata = uploadResult.metadata || {};
+            imageMetadata = uploadResult.metadata;
         }
         const record = {
             name: $('#dishName').value.trim(),
