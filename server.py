@@ -201,9 +201,10 @@ class Handler(SimpleHTTPRequestHandler):
                 },
             )
             item = form['image']
+            metadata_item = form['metadata_image'] if 'metadata_image' in form else item
             metadata = {}
             try:
-                image = Image.open(item.file)
+                image = Image.open(metadata_item.file)
                 exif = image.getexif()
                 if exif:
                     metadata['taken_at'] = exif.get(36867) or exif.get(306)
@@ -217,6 +218,7 @@ class Handler(SimpleHTTPRequestHandler):
                         metadata['longitude'] = coordinate(gps[4], gps[3]) if gps.get(4) and gps.get(3) else None
             except Exception:
                 metadata = {}
+            metadata_item.file.seek(0)
             item.file.seek(0)
             extension = os.path.splitext(item.filename)[1].lower()
             key = f'myfood/{uuid.uuid4().hex}{extension}'

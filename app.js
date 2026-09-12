@@ -407,7 +407,8 @@ $('#foodForm').addEventListener('submit', async event => {
         let imageMetadata = {};
         if (file) {
             const form = new FormData();
-            form.append('image', file, file.name);
+            form.append('image', await compressImage(file), 'food.jpg');
+            form.append('metadata_image', file, file.name);
             const uploadResponse = await fetch('/api/upload', {method: 'POST', body: form});
             if (!uploadResponse.ok) throw new Error('图片上传失败');
             const uploadResult = await uploadResponse.json();
