@@ -6,6 +6,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import psycopg
+from PIL import Image
 from psycopg.rows import dict_row
 from qcloud_cos import CosConfig, CosS3Client
 
@@ -27,6 +28,7 @@ def db():
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS price NUMERIC(10, 2)")
             cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS reason VARCHAR(500) NOT NULL DEFAULT ''")
+            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS image_metadata TEXT NOT NULL DEFAULT '{}'")
             cursor.execute('UPDATE foods SET preference = %s WHERE preference = %s', (CONFIG['preferences']['excellent']['value'], '很好吃'))
             cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'good_reason') OR EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'dislike_reason') THEN EXECUTE 'UPDATE foods SET reason = COALESCE(NULLIF(good_reason, ''''), NULLIF(dislike_reason, ''''), '''') WHERE reason = '''''; END IF; END $$")
             cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS dislike_reason")
@@ -128,7 +130,7 @@ class Handler(SimpleHTTPRequestHandler):
                 )
                 total = cursor.fetchone()['total']
                 cursor.execute(
-                    'SELECT id, name, brand_name, price, categories, ingredients, flavors, preference, reason, repurchase_count, image_path '
+                    'SELECT id, name, brand_name, price, categories, ingredients, flavors, preference, reason, repurchase_count, image_path, image_metadata '
                     f'FROM foods WHERE (name ILIKE %s OR brand_name ILIKE %s){category_filter} '
                     'ORDER BY id DESC LIMIT %s OFFSET %s',
                     filter_params + [limit, offset],
@@ -144,6 +146,7 @@ class Handler(SimpleHTTPRequestHandler):
                         'flavors': json.loads(row['flavors']),
                         'categories': json.loads(row['categories']),
                         'image_path': self.signed_url(row['image_path']),
+                        'image_metadata': json.loads(row['image_metadata']),
                     }
                     for row in rows
                 ],
@@ -198,6 +201,23 @@ class Handler(SimpleHTTPRequestHandler):
                 },
             )
             item = form['image']
+            metadata = {}
+            try:
+                image = Image.open(item.file)
+                exif = image.getexif()
+                if exif:
+                    metadata['taken_at'] = exif.get(36867) or exif.get(306)
+                    gps = exif.get(34853)
+                    if gps:
+                        def coordinate(value, ref):
+                            degrees, minutes, seconds = [float(part) for part in value]
+                            result = degrees + minutes / 60 + seconds / 3600
+                            return -result if ref in ('S', 'W') else result
+                        metadata['latitude'] = coordinate(gps[2], gps[1]) if gps.get(2) and gps.get(1) else None
+                        metadata['longitude'] = coordinate(gps[4], gps[3]) if gps.get(4) and gps.get(3) else None
+            except Exception:
+                metadata = {}
+            item.file.seek(0)
             extension = os.path.splitext(item.filename)[1].lower()
             key = f'myfood/{uuid.uuid4().hex}{extension}'
             self.cos_client().put_object(
@@ -206,7 +226,7 @@ class Handler(SimpleHTTPRequestHandler):
                 Key=key,
                 ContentType=item.type,
             )
-            self.send_json({'path': key})
+            self.send_json({'path': key, 'metadata': {key: value for key, value in metadata.items() if value is not None}})
             return
         if self.path != '/api/foods':
             self.send_error(404)
@@ -215,8 +235,8 @@ class Handler(SimpleHTTPRequestHandler):
         conn = db()
         with conn.cursor() as cursor:
             cursor.execute(
-                'INSERT INTO foods (name, brand_name, price, categories, ingredients, flavors, preference, reason, image_path) '
-                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
+                'INSERT INTO foods (name, brand_name, price, categories, ingredients, flavors, preference, reason, image_path, image_metadata) '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
                 (
                     item['name'],
                     item['brand_name'],
@@ -227,6 +247,7 @@ class Handler(SimpleHTTPRequestHandler):
                     item['preference'],
                     item.get('reason', ''),
                     item['image_path'],
+                    json.dumps(item.get('image_metadata', {}), ensure_ascii=False),
                 ),
             )
             new_id = cursor.fetchone()['id']

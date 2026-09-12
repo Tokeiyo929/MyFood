@@ -404,12 +404,15 @@ $('#foodForm').addEventListener('submit', async event => {
     try {
         const file = $('#imageInput').files[0];
         let imagePath = '';
+        let imageMetadata = {};
         if (file) {
             const form = new FormData();
-            form.append('image', await compressImage(file), 'food.jpg');
+            form.append('image', file, file.name);
             const uploadResponse = await fetch('/api/upload', {method: 'POST', body: form});
             if (!uploadResponse.ok) throw new Error('图片上传失败');
-            imagePath = (await uploadResponse.json()).path;
+            const uploadResult = await uploadResponse.json();
+            imagePath = uploadResult.path;
+            imageMetadata = uploadResult.metadata || {};
         }
         const record = {
             name: $('#dishName').value.trim(),
@@ -421,6 +424,7 @@ $('#foodForm').addEventListener('submit', async event => {
             preference: currentPreference,
             reason: currentPreference === settings.preferences.bad.value ? $('#dislikeReason').value.trim() : $('#goodReason').value.trim(),
             image_path: imagePath,
+            image_metadata: imageMetadata,
         };
         const response = await fetch('/api/foods', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(record)});
         if (!response.ok) throw new Error('保存请求失败');
