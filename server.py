@@ -7,8 +7,11 @@ from urllib.parse import parse_qs, urlparse
 
 import psycopg
 from PIL import Image
+from pillow_heif import register_heif_opener
 from psycopg.rows import dict_row
 from qcloud_cos import CosConfig, CosS3Client
+
+register_heif_opener()
 
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
