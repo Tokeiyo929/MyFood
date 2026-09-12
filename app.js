@@ -300,7 +300,18 @@ $('#addCatalogIngredient').addEventListener('click', addCatalogIngredient);
 $('#catalogIngredientInput').addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
 });
-$('#catalogIngredientInput').addEventListener('input', renderCatalogs);
+let ingredientSearchRequest = 0;
+$('#catalogIngredientInput').addEventListener('input', async event => {
+    const search = event.target.value.trim();
+    const requestId = ++ingredientSearchRequest;
+    if (!search) {
+        renderCatalogs();
+        return;
+    }
+    const result = await (await fetch(`/api/ingredients?search=${encodeURIComponent(search)}&limit=${settings.pagination.ingredient_page_size}`)).json();
+    if (requestId !== ingredientSearchRequest) return;
+    $('#allIngredients').innerHTML = result.items.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
+});
 $('#allTags').addEventListener('click', event => {
     const item = event.target.closest('[data-category-name]');
     if (item) {

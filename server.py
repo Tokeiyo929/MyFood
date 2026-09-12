@@ -189,15 +189,18 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if parsed_path.path == '/api/ingredients':
             query = parse_qs(parsed_path.query)
+            search = query.get('search', [''])[0].strip()
             page = max(int(query.get('page', ['1'])[0]), 1)
             page_size = CONFIG['pagination']['ingredient_page_size']
             limit = min(max(int(query.get('limit', [page_size])[0]), 1), page_size)
             offset = (page - 1) * limit
             conn = db()
             with conn.cursor() as cursor:
-                cursor.execute('SELECT COUNT(*) AS total FROM ingredients')
+                where = ' WHERE name ILIKE %s' if search else ''
+                params = [f'%{search}%'] if search else []
+                cursor.execute(f'SELECT COUNT(*) AS total FROM ingredients{where}', params)
                 total = cursor.fetchone()['total']
-                cursor.execute('SELECT id, name FROM ingredients ORDER BY id LIMIT %s OFFSET %s', (limit, offset))
+                cursor.execute(f'SELECT id, name FROM ingredients{where} ORDER BY name LIMIT %s OFFSET %s', params + [limit, offset])
                 rows = cursor.fetchall()
             conn.close()
             self.send_json({'items': rows, 'total': total, 'page': page, 'limit': limit})
