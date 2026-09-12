@@ -126,12 +126,12 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
 .preference-bad-card { border-left: 5px solid var(--bad); }
 .empty-state { padding: 22px 0; color: var(--muted); text-align: center; }
 .repurchase-actions { display: none; }
-.record.expanded .repurchase-actions { position: absolute; inset: -1px; z-index: 3; display: flex; flex-wrap: wrap; align-content: center; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.97); animation: record-expand .15s ease-out; }
+.record.expanded .repurchase-actions { position: absolute; inset: -1px; z-index: 3; display: flex; flex-wrap: wrap; align-content: flex-start; align-items: flex-start; justify-content: center; gap: 8px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.97); animation: record-expand .15s ease-out; }
 .record.expanded .repurchase-choice { flex: 1 1 calc(50% - 4px); max-width: none; min-width: 0; min-height: 44px; border: 0; border-radius: 10px; background: var(--button-background); font-size: 15px; white-space: nowrap; }
 .record.expanded .repurchase-choice:hover { background: var(--soft); }
 .repurchase-count { flex: 0 0 100%; width: 100%; order: -1; color: var(--muted); font-size: 14px; text-align: center; }
-.dislike-reason-display { width: 100%; padding: 0; color: var(--reason); text-align: left; font-size: 15px; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
-.good-reason-display { width: 100%; padding: 0; grid-column: 1 / -1; color: var(--good); text-align: left; font-size: 15px; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
+.dislike-reason-display, .good-reason-display { width: 100%; max-height: 100%; align-self: stretch; padding: 8px 0; overflow-y: auto; color: var(--reason); text-align: left; font-size: 15px; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
+.good-reason-display { color: var(--good); }
 .reason-form { display: flex; gap: 8px; width: 100%; align-items: center; }
 .reason-form input { min-width: 0; flex: 1; min-height: 40px; }
 .reason-form button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; white-space: nowrap; }
