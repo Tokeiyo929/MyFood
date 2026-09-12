@@ -208,7 +208,7 @@ class Handler(SimpleHTTPRequestHandler):
                 exif = image.getexif()
                 if exif:
                     metadata['taken_at'] = exif.get(36867) or exif.get(306)
-                    gps = exif.get(34853)
+                    gps = exif.get_ifd(34853)
                     if gps:
                         def coordinate(value, ref):
                             degrees, minutes, seconds = [float(part) for part in value]
