@@ -151,7 +151,7 @@ function renderCatalogs() {
         (groups[item.parentcategories] ||= []).push(item);
         return groups;
     }, {});
-    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => { const food = categoryFoods[parent]?.find(value => value.categories.includes(item.name)); return `<div class="catalog-item">${escapeHtml(item.name)}${food?.image_path ? `<span class="catalog-image-loading" aria-label="图片加载中"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20V6.5Zm6 1.6v7.8m6-7.8v7.8M3 6.5l6 2.6 6-2.6 6 2.6M3 20l6-2.5 6 2.5 6-3"/></svg></span><img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" onload="this.previousElementSibling.hidden=true" />` : ''}</div>`; }).join('')}</div></section>`).join('');
+    $('#allTags').innerHTML = Object.entries(groupedCategories).map(([parent, items]) => `<section class="catalog-group${expandedCategoryParent === parent ? ' expanded' : ''}"><h2 class="catalog-group-title" data-parent-category="${escapeHtml(parent)}" tabindex="0" role="button" aria-expanded="${expandedCategoryParent === parent}">${escapeHtml(parent)}</h2><div class="catalog-group-items">${items.map(item => { const food = categoryFoods[parent]?.find(value => value.categories.includes(item.name)); return `<div class="catalog-item" data-category-name="${escapeHtml(item.name)}" data-parent-category="${escapeHtml(parent)}">${escapeHtml(item.name)}${food?.image_path ? `<span class="catalog-image-loading" aria-label="图片加载中"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20V6.5Zm6 1.6v7.8m6-7.8v7.8M3 6.5l6 2.6 6-2.6 6 2.6M3 20l6-2.5 6 2.5 6-3"/></svg></span><img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" onload="this.previousElementSibling.hidden=true" />` : ''}</div>`; }).join('')}</div></section>`).join('');
     const query = $('#catalogIngredientInput').value.trim().toLowerCase();
     $('#allIngredients').innerHTML = availableIngredients
         .filter(item => !query || item.name.toLowerCase().includes(query))
@@ -294,6 +294,14 @@ $('#catalogIngredientInput').addEventListener('keydown', event => {
 });
 $('#catalogIngredientInput').addEventListener('input', renderCatalogs);
 $('#allTags').addEventListener('click', event => {
+    const item = event.target.closest('[data-category-name]');
+    if (item) {
+        const foods = (categoryFoods[item.dataset.parentCategory] || []).filter(food => food.categories.includes(item.dataset.categoryName));
+        $('#categoryModalTitle').textContent = item.dataset.categoryName;
+        $('#categoryModalFoods').innerHTML = foods.length ? foods.map(food => `<article class="category-modal-food">${food.image_path ? `<img src="${food.image_path}" alt="${escapeHtml(food.name)}" loading="lazy" />` : '<span class="category-modal-food-placeholder" aria-hidden="true"></span>'}<strong>${escapeHtml(food.name)}</strong></article>`).join('') : '<p>暂无对应食品</p>';
+        $('#categoryModal').hidden = false;
+        return;
+    }
     const header = event.target.closest('[data-parent-category]');
     if (!header) return;
     const parent = header.dataset.parentCategory;
@@ -310,6 +318,7 @@ $('#allTags').addEventListener('click', event => {
         nextHeader.scrollIntoView({behavior: 'smooth', block: 'start'});
     }
 });
+document.querySelectorAll('[data-close-category-modal]').forEach(element => element.addEventListener('click', () => { $('#categoryModal').hidden = true; }));
 $('#preference').addEventListener('input', event => {
     if (event.target.id !== 'preferenceSlider') return;
     updatePreference(preferenceAt(Number(event.target.value)).value);

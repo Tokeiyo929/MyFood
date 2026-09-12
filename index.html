@@ -87,6 +87,14 @@
     <button type="button" data-view="ingredientsView">原料</button>
   </nav>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="categoryModal" class="category-modal" hidden>
+    <div class="category-modal-backdrop" data-close-category-modal></div>
+    <section class="category-modal-panel" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+      <button class="category-modal-close" type="button" data-close-category-modal aria-label="关闭">×</button>
+      <h2 id="categoryModalTitle"></h2>
+      <div id="categoryModalFoods" class="category-modal-foods"></div>
+    </section>
+  </div>
     <script src="app.js"></script>
 </body>
 </html>
