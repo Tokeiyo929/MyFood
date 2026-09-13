@@ -164,7 +164,6 @@ function renderCatalogs() {
     const query = $('#catalogIngredientInput').value.trim().toLowerCase();
     $('#allIngredients').innerHTML = availableIngredients
         .filter(item => !query || item.name.toLowerCase().includes(query))
-        .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', {sensitivity: 'base'}))
         .map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`)
         .join('');
 }

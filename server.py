@@ -69,10 +69,6 @@ def db():
             cursor.execute('UPDATE categories SET parentcategories = %s WHERE parentcategories = %s', (CONFIG['default_parentcategory'], ''))
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
             cursor.execute("SELECT setval(pg_get_serial_sequence('categories', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM categories")
-            cursor.executemany(
-                "INSERT INTO categories (name, parentcategories) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
-                [(category['name'], category['parentcategories']) for category in CONFIG['initial_categories']],
-            )
             cursor.execute('SELECT ingredients FROM foods')
             for row in cursor.fetchall():
                 for ingredient in json.loads(row['ingredients']):
@@ -94,6 +90,7 @@ def db():
                         'UPDATE foods SET flavors = %s WHERE id = %s',
                         (json.dumps(normalized_flavors, ensure_ascii=False), row['id']),
                     )
+            cursor.execute("SELECT setval(pg_get_serial_sequence('ingredients', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM ingredients")
         schema_ready = True
     return conn
 
@@ -200,7 +197,7 @@ class Handler(SimpleHTTPRequestHandler):
                 params = [f'%{search}%'] if search else []
                 cursor.execute(f'SELECT COUNT(*) AS total FROM ingredients{where}', params)
                 total = cursor.fetchone()['total']
-                cursor.execute(f'SELECT id, name FROM ingredients{where} ORDER BY name LIMIT %s OFFSET %s', params + [limit, offset])
+                cursor.execute(f'SELECT id, name FROM ingredients{where} ORDER BY id LIMIT %s OFFSET %s', params + [limit, offset])
                 rows = cursor.fetchall()
             conn.close()
             self.send_json({'items': rows, 'total': total, 'page': page, 'limit': limit})
