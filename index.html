@@ -4,17 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>MyFood · 食物记录</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg" />
-<link rel="apple-touch-icon" href="favicon.svg" />
-<meta name="theme-color" content="#66508f" />
-<link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
+  <meta name="theme-color" content="#66508f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="app-shell">
-    <section id="recordsView" class="app-view active-view">
+    <section id="recordsView" class="app-view">
     <form id="foodForm" class="card">
-      
+
       <section class="meal-entry">
         <label class="image-picker">
           <input id="imageInput" type="file" accept="image/*" />
@@ -23,17 +23,17 @@
         </label>
         <div class="meal-details">
           <label class="field">
-            <span>产品名称 <em>可选</em></span>
+            <span>产品名称</span>
             <input id="dishName" type="text" autocomplete="off" />
           </label>
           <label class="field">
-            <span>生产者 <em>可选</em></span>
+            <span>生产者</span>
             <input id="brandName" type="text" autocomplete="off" />
           </label>
         </div>
       </section>
       <section class="field">
-        <span>价格 <em>可选</em></span>
+        <span>价格</span>
         <input id="price" type="text" inputmode="decimal" autocomplete="off" />
       </section>
 
@@ -44,11 +44,11 @@
           <div id="flavors" class="flavor-wheel"></div>
           <div class="preference-panel" id="preference"></div>
         </div>
-        <label class="field dislike-reason" id="dislikeReasonField" hidden>
+        <label class="field" id="dislikeReasonField" hidden>
           <span>难吃理由 <b class="required-mark">*</b></span>
           <input id="dislikeReason" type="text" autocomplete="off" />
         </label>
-        <label class="field dislike-reason" id="goodReasonField" hidden>
+        <label class="field" id="goodReasonField" hidden>
           <span>推荐理由 <b class="required-mark">*</b></span>
           <input id="goodReason" type="text" autocomplete="off" />
         </label>
@@ -66,7 +66,7 @@
     </form>
 
     <section class="recent-section">
-       <div class="record-tools"><input id="recordSearch" type="text" /><button id="clearSearch" type="button" aria-label="清除搜索">×</button></div>
+      <div class="record-tools"><input id="recordSearch" type="text" placeholder="搜索名称、品牌或原料" /><button id="clearSearch" type="button" aria-label="清除搜索">×</button></div>
       <div id="records" class="records"></div>
       <p id="emptyState" class="empty-state">还没有记录。吃完就记一下，之后更容易想起。</p>
     </section>
@@ -95,6 +95,6 @@
       <div id="categoryModalFoods" class="category-modal-foods"></div>
     </section>
   </div>
-    <script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

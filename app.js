@@ -201,6 +201,13 @@ function renderRecords() {
     $('#emptyState').hidden = records.length > 0;
     $('#records').innerHTML = records.map(record => {
         const visibleFlavors = record.flavors.filter(flavor => flavor.level !== defaultLevel);
+        const actions = record.preference === bad.value
+            ? `<div class="dislike-reason-display">难吃理由：${escapeHtml(record.reason)}</div>`
+            : record.preference === excellent.value
+            ? `<div class="good-reason-display">推荐理由：${escapeHtml(record.reason)}</div>`
+            : `<span class="repurchase-count">已复购 ${record.repurchase_count} 次</span>
+                        <button class="repurchase-choice" data-value="${good.value}" type="button">${good.label}</button>
+                        <button class="repurchase-choice" data-value="${bad.value}" type="button">${bad.label}</button>`;
         return `<article class="record ${record.preference === excellent.value ? 'preference-excellent-card' : record.preference === bad.value ? 'preference-bad-card' : 'preference-good-card'}" data-id="${record.id}">
         <div class="record-content">
             <div class="record-image-box">${record.image_path ? `<img class="record-image" src="${record.image_path}" alt="${escapeHtml(record.name)}" />` : ''}</div>
@@ -211,51 +218,42 @@ function renderRecords() {
                         ${record.brand_name ? `<span class="record-brand">${escapeHtml(record.brand_name)}</span>` : ''}
                         ${visibleFlavors.length ? `<div class="record-tags">${visibleFlavors.map(flavor => `<span class="record-tag">${escapeHtml(formatFlavorName(flavor.name, flavor.level))}</span>`).join('')}</div>` : ''}
                     </div></div>
-                    <div class="repurchase-actions">
-                        <button class="repurchase-choice" data-value="${good.value}" type="button">${good.label}</button>
-                        <button class="repurchase-choice" data-value="${bad.value}" type="button">${bad.label}</button>
-                    </div>
+                    <div class="repurchase-actions">${actions}</div>
                     <div class="record-meta">${record.ingredients.map(escapeHtml).join('、')}</div>
                 </div>
             </div>
         </div>
     </article>`;
     }).join('');
-
-    document.querySelectorAll('.record').forEach(card => {
-        const record = records.find(item => String(item.id) === card.dataset.id);
-        if (record.preference === bad.value) {
-            card.querySelector('.repurchase-actions').innerHTML = `<div class="dislike-reason-display">难吃理由：${escapeHtml(record.reason)}</div>`;
-            return;
-        }
-        if (record.preference === excellent.value) {
-            card.querySelector('.repurchase-actions').innerHTML = `<div class="good-reason-display">推荐理由：${escapeHtml(record.reason)}</div>`;
-            return;
-        }
-        card.querySelector('.repurchase-actions').insertAdjacentHTML('beforeend', `<span class="repurchase-count">已复购 ${record.repurchase_count} 次</span>`);
-    });
-}
-
-function restoreRecordSide(card) {
-    card.classList.remove('expanded');
 }
 
 let page = 1;
 let hasMoreRecords = true;
 let loadingRecords = false;
+let recordsRequest = 0;
 
 async function loadRecords(reset = true) {
-    if (loadingRecords || (!reset && !hasMoreRecords)) return;
-    loadingRecords = true;
+    // 搜索（reset）永远不能被丢弃，否则最新一次输入会查不到；只有翻页需要防重复。
+    if (!reset && (loadingRecords || !hasMoreRecords)) return;
     const nextPage = reset ? 1 : page + 1;
-    const params = new URLSearchParams({page: nextPage, limit: settings.pagination.page_size, search: $('#recordSearch').value.replace(/\s+/g, ' ').trim()});
-    const result = await (await fetch(`/api/foods?${params}`)).json();
-    if (reset) records.length = 0;
-    records.push(...result.items);
-    page = nextPage;
-    hasMoreRecords = records.length < result.total;
-    renderRecords();
-    loadingRecords = false;
+    const requestId = ++recordsRequest;
+    loadingRecords = true;
+    try {
+        const params = new URLSearchParams({page: nextPage, limit: settings.pagination.page_size, search: $('#recordSearch').value.replace(/\s+/g, ' ').trim()});
+        const result = await (await fetch(`/api/foods?${params}`)).json();
+        // 期间又发起了更新的请求，本次结果已过期，丢弃以免覆盖新结果。
+        if (requestId !== recordsRequest) return;
+        if (reset) records.length = 0;
+        records.push(...result.items);
+        page = nextPage;
+        hasMoreRecords = records.length < result.total;
+        renderRecords();
+    } catch (error) {
+        // 失败时保留上一次的结果即可，关键是 finally 复位 loadingRecords，
+        // 否则一次请求失败会让之后的搜索和翻页永久失效。
+    } finally {
+        if (requestId === recordsRequest) loadingRecords = false;
+    }
 }
 
 $('#ingredientInput').addEventListener('input', async event => {
@@ -271,7 +269,7 @@ $('#ingredientInput').addEventListener('input', async event => {
 });
 $('#ingredientSuggestions').addEventListener('click', event => {
     const button = event.target.closest('[data-ingredient]');
-    if (!button || ingredients.includes(button.dataset.ingredient)) return;
+    if (!button) return;
     ingredients.unshift(button.dataset.ingredient);
     $('#ingredientInput').value = '';
     $('#formError').textContent = '';
@@ -348,7 +346,6 @@ $('#allTags').addEventListener('click', event => {
 });
 document.querySelectorAll('[data-close-category-modal]').forEach(element => element.addEventListener('click', () => { $('#categoryModal').hidden = true; }));
 $('#preference').addEventListener('input', event => {
-    if (event.target.id !== 'preferenceSlider') return;
     updatePreference(preferenceAt(Number(event.target.value)).value);
     updatePreferenceSlider();
 });
@@ -358,24 +355,17 @@ document.addEventListener('click', async event => {
     const repurchase = event.target.closest('.repurchase-choice');
     if (repurchase) {
         const card = repurchase.closest('.record');
-        await fetch(`/api/foods/${card.dataset.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({preference: repurchase.dataset.value})});
+        await fetch(`/api/foods/${card.dataset.id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({preference: repurchase.dataset.value, reason: ''})});
         await loadRecords();
         return;
     }
-    const card = event.target.closest('.record');
-    if (card) {
-        const expanded = document.querySelector('.record.expanded');
-        if (expanded && expanded !== card) restoreRecordSide(expanded);
-        if (expanded === card) restoreRecordSide(card);
-        else card.classList.add('expanded');
-        return;
-    }
     const expanded = document.querySelector('.record.expanded');
-    if (expanded) restoreRecordSide(expanded);
+    if (expanded) expanded.classList.remove('expanded');
+    const card = event.target.closest('.record');
+    if (card && card !== expanded) card.classList.add('expanded');
 });
 
 document.addEventListener('click', event => {
-    if (!settings) return;
     const button = event.target.closest(`.repurchase-choice[data-value="${settings.preferences.bad.value}"]`);
     if (!button) return;
     event.preventDefault();
@@ -479,14 +469,18 @@ $('#foodForm').addEventListener('submit', async event => {
     }
 });
 
-$('#recordSearch').addEventListener('input', () => loadRecords(true));
+$('#recordSearch').addEventListener('input', event => {
+    // 中文输入法组字期间不搜，否则会把 zhen / zhenxi 这类拼音碎片当关键词发出去。
+    if (event.isComposing) return;
+    loadRecords(true);
+});
+$('#recordSearch').addEventListener('compositionend', () => loadRecords(true));
 $('#clearSearch').addEventListener('click', () => {
     $('#recordSearch').value = '';
     loadRecords(true);
     $('#recordSearch').focus();
 });
 window.addEventListener('scroll', () => {
-    if (!settings) return;
     if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - settings.pagination.scroll_threshold) return;
     if (!$('#recordsView').hidden) loadRecords(false);
     if (!$('#ingredientsView').hidden) loadIngredients(false);

@@ -50,47 +50,9 @@ def db():
     conn.autocommit = True
     if not schema_ready:
         with conn.cursor() as cursor:
-            cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, image_path VARCHAR(500) NOT NULL DEFAULT '')")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255) NOT NULL DEFAULT ''")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS price NUMERIC(10, 2)")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS reason VARCHAR(500) NOT NULL DEFAULT ''")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS image_metadata TEXT NOT NULL DEFAULT '{}'")
-            cursor.execute('UPDATE foods SET preference = %s WHERE preference = %s', (CONFIG['preferences']['excellent']['value'], '很好吃'))
-            cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'good_reason') OR EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'dislike_reason') THEN EXECUTE 'UPDATE foods SET reason = COALESCE(NULLIF(good_reason, ''''), NULLIF(dislike_reason, ''''), '''') WHERE reason = '''''; END IF; END $$")
-            cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS dislike_reason")
-            cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS good_reason")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS repurchase_count INTEGER NOT NULL DEFAULT 0")
-            cursor.execute("ALTER TABLE foods ADD COLUMN IF NOT EXISTS categories TEXT NOT NULL DEFAULT '[]'")
-            cursor.execute("DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'foods' AND column_name = 'tags') THEN UPDATE foods SET categories = tags WHERE categories = '[]' AND tags <> '[]'; ALTER TABLE foods DROP COLUMN tags; END IF; END $$")
-            cursor.execute("ALTER TABLE foods DROP COLUMN IF EXISTS category")
-            cursor.execute("DO $$ BEGIN IF to_regclass('public.tags') IS NOT NULL AND to_regclass('public.categories') IS NULL THEN ALTER TABLE tags RENAME TO categories; END IF; END $$")
+            cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, brand_name VARCHAR(255) NOT NULL DEFAULT '', price NUMERIC(10, 2), categories TEXT NOT NULL DEFAULT '[]', ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, reason VARCHAR(500) NOT NULL DEFAULT '', repurchase_count INTEGER NOT NULL DEFAULT 0, image_path VARCHAR(500) NOT NULL DEFAULT '', image_metadata TEXT NOT NULL DEFAULT '{}')")
             cursor.execute("CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, parentcategories VARCHAR(255) NOT NULL DEFAULT '')")
-            cursor.execute("ALTER TABLE categories ADD COLUMN IF NOT EXISTS parentcategories VARCHAR(255) NOT NULL DEFAULT ''")
-            cursor.execute('UPDATE categories SET parentcategories = %s WHERE parentcategories = %s', (CONFIG['default_parentcategory'], ''))
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
-            cursor.execute("SELECT setval(pg_get_serial_sequence('categories', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM categories")
-            cursor.execute('SELECT ingredients FROM foods')
-            for row in cursor.fetchall():
-                for ingredient in json.loads(row['ingredients']):
-                    ingredient = ingredient.strip()
-                    if ingredient:
-                        cursor.execute(
-                            'INSERT INTO ingredients (name) VALUES (%s) ON CONFLICT (name) DO NOTHING',
-                            (ingredient,),
-                        )
-            cursor.execute('SELECT id, flavors FROM foods')
-            for row in cursor.fetchall():
-                flavors = json.loads(row['flavors'])
-                normalized_flavors = [
-                    {'name': flavor, 'level': CONFIG['flavor_scale']['default_level']} if isinstance(flavor, str) else flavor
-                    for flavor in flavors
-                ]
-                if normalized_flavors != flavors:
-                    cursor.execute(
-                        'UPDATE foods SET flavors = %s WHERE id = %s',
-                        (json.dumps(normalized_flavors, ensure_ascii=False), row['id']),
-                    )
-            cursor.execute("SELECT setval(pg_get_serial_sequence('ingredients', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM ingredients")
         schema_ready = True
     return conn
 
@@ -121,7 +83,6 @@ class Handler(SimpleHTTPRequestHandler):
     def signed_url(self, key):
         if not key:
             return ''
-        key = key.split('.com/', 1)[-1]
         return self.cos_client().get_presigned_download_url(
             Bucket=os.environ['COS_BUCKET'],
             Key=key,
@@ -146,15 +107,19 @@ class Handler(SimpleHTTPRequestHandler):
             conn = db()
             with conn.cursor() as cursor:
                 category_filter = ' AND categories::jsonb ?| ARRAY(SELECT name FROM categories WHERE parentcategories = %s)' if category else ''
-                filter_params = [f'%{search}%', f'%{search}%'] + ([category] if category else [])
+                search_filter = (
+                    '(name ILIKE %s OR brand_name ILIKE %s'
+                    ' OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(ingredients::jsonb) AS ingredient WHERE ingredient ILIKE %s))'
+                )
+                filter_params = [f'%{search}%'] * 3 + ([category] if category else [])
                 cursor.execute(
-                    f'SELECT COUNT(*) AS total FROM foods WHERE (name ILIKE %s OR brand_name ILIKE %s){category_filter}',
+                    f'SELECT COUNT(*) AS total FROM foods WHERE {search_filter}{category_filter}',
                     filter_params,
                 )
                 total = cursor.fetchone()['total']
                 cursor.execute(
                     'SELECT id, name, brand_name, price, categories, ingredients, flavors, preference, reason, repurchase_count, image_path, image_metadata '
-                    f'FROM foods WHERE (name ILIKE %s OR brand_name ILIKE %s){category_filter} '
+                    f'FROM foods WHERE {search_filter}{category_filter} '
                     'ORDER BY id DESC LIMIT %s OFFSET %s',
                     filter_params + [limit, offset],
                 )
@@ -227,9 +192,8 @@ class Handler(SimpleHTTPRequestHandler):
                 },
             )
             item = form['image']
-            metadata_item = form['metadata_image']
             try:
-                metadata = read_image_metadata(metadata_item.file)
+                metadata = read_image_metadata(form['metadata_image'].file)
             except (OSError, ValueError, TypeError):
                 metadata = {}
             extension = os.path.splitext(item.filename)[1].lower()
@@ -254,12 +218,12 @@ class Handler(SimpleHTTPRequestHandler):
                 (
                     item['name'],
                     item['brand_name'],
-                    item.get('price'),
+                    item['price'],
                     json.dumps(item['categories'], ensure_ascii=False),
                     json.dumps(item['ingredients'], ensure_ascii=False),
                     json.dumps(item['flavors'], ensure_ascii=False),
                     item['preference'],
-                    item.get('reason', ''),
+                    item['reason'],
                     item['image_path'],
                     json.dumps(item['image_metadata'], ensure_ascii=False),
                 ),
@@ -277,7 +241,7 @@ class Handler(SimpleHTTPRequestHandler):
                 'UPDATE foods SET preference = %s, reason = %s, repurchase_count = repurchase_count + %s WHERE id = %s',
                 (
                     item['preference'],
-                    item.get('reason', ''),
+                    item['reason'],
                     1 if item['preference'] == CONFIG['preferences']['good']['value'] else 0,
                     food_id,
                 ),
