@@ -1,7 +1,6 @@
 const records = [];
 const ingredients = [];
 const availableIngredients = [];
-let ingredientSearchResults = null;
 let ingredientSearchRequest = 0;
 let ingredientPage = 0;
 let ingredientTotal = 0;
@@ -116,9 +115,8 @@ function renderIngredients() {
     ).join('');
 }
 
-function renderIngredientSuggestions() {
+function renderIngredientSuggestions(source = availableIngredients) {
     const query = $('#ingredientInput').value.trim().toLowerCase();
-    const source = ingredientSearchResults || availableIngredients;
     $('#ingredientSuggestions').innerHTML = query
         ? source.filter(item => !ingredients.includes(item.name) && item.name.toLowerCase().includes(query)).map(item =>
             `<button type="button" class="quick-ingredient" data-ingredient="${escapeHtml(item.name)}">${escapeHtml(item.name)}</button>`
@@ -265,21 +263,18 @@ $('#ingredientInput').addEventListener('input', async event => {
     const query = event.target.value.trim();
     const requestId = ++ingredientSearchRequest;
     if (!query) {
-        ingredientSearchResults = null;
         renderIngredientSuggestions();
         return;
     }
     const result = await (await fetch(`/api/ingredients?search=${encodeURIComponent(query)}&limit=${settings.pagination.ingredient_page_size}`)).json();
     if (requestId !== ingredientSearchRequest) return;
-    ingredientSearchResults = result.items;
-    renderIngredientSuggestions();
+    renderIngredientSuggestions(result.items);
 });
 $('#ingredientSuggestions').addEventListener('click', event => {
     const button = event.target.closest('[data-ingredient]');
     if (!button || ingredients.includes(button.dataset.ingredient)) return;
     ingredients.unshift(button.dataset.ingredient);
     $('#ingredientInput').value = '';
-    ingredientSearchResults = null;
     $('#formError').textContent = '';
     renderIngredients();
     renderIngredientSuggestions();
