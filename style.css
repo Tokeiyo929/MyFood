@@ -18,9 +18,9 @@
 }
 
 * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-/* 关闭长按选中页面元素，但输入框必须保留选择能力，否则无法用光标编辑文字。 */
+/* keep selection behavior */
 input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
-/* 图片保留长按保存/分享菜单。user-select 必须写 text 而非 auto：auto 会因父级为 none 而解析成 none。 */
+/* keep selection behavior */
 img { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 body { margin: 0; color: var(--ink); background: var(--background); font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
 button, input { font: inherit; }
@@ -145,3 +145,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--soft); }
   from { opacity: .5; transform: scale(.96); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* catalog add row: name + amount inputs */
+.catalog-add-row #catalogIngredientInput { flex: 2; }
+.catalog-add-row #catalogIngredientAmountInput { flex: 1; min-width: 110px; }

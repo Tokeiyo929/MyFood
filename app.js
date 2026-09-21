@@ -17,18 +17,25 @@ let draggingFlavor;
 const FLAVOR_WHEEL = {size: 240, center: 120, radius: 83, labelRadius: 99, handleRadius: 7};
 
 const $ = selector => document.querySelector(selector);
-const escapeHtml = value => value.replace(/[&<>"']/g, char => ({
+const escapeHtml = value => value.replace(/[&<>\'"]/g, char => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    "'": '&#39;',
+    "\'": '&#39;',
 }[char]));
 const preferences = () => Object.values(settings.preferences).sort((a, b) => a.level - b.level);
 const preferenceAt = level => preferences().find(item => item.level === level);
 const formatFlavorName = (name, level) => {
     const {low_threshold, mid_threshold, high_threshold} = settings.flavor_scale;
     return level < low_threshold ? `不${name}` : level < mid_threshold ? `微${name}` : level < high_threshold ? name : `太${name}`;
+};
+
+// 兼容旧字符串与新的 {name, amount} 对象两种原料元素，返回统一的 {name, amount} 对象
+const normalizeIngredient = item => typeof item === 'string' ? {name: item, amount: ''} : {name: item.name, amount: item.amount || ''};
+const ingredientLabel = item => {
+    const {name, amount} = normalizeIngredient(item);
+    return amount ? `${name}(${amount})` : name;
 };
 
 function renderOptions() {
@@ -111,15 +118,15 @@ function updatePreferenceSlider() {
 
 function renderIngredients() {
     $('#ingredientChips').innerHTML = ingredients.slice().reverse().map((item, index) =>
-        `<span class="chip">${escapeHtml(item)}<button type="button" data-index="${ingredients.length - 1 - index}" aria-label="删除${escapeHtml(item)}">×</button></span>`
+        `<span class="chip">${escapeHtml(ingredientLabel(item))}<button type="button" data-index="${ingredients.length - 1 - index}" aria-label="删除${escapeHtml(ingredientLabel(item))}">×</button></span>`
     ).join('');
 }
 
 function renderIngredientSuggestions(source = availableIngredients) {
     const query = $('#ingredientInput').value.trim().toLowerCase();
     $('#ingredientSuggestions').innerHTML = query
-        ? source.filter(item => !ingredients.includes(item.name) && item.name.toLowerCase().includes(query)).map(item =>
-            `<button type="button" class="quick-ingredient" data-ingredient="${escapeHtml(item.name)}">${escapeHtml(item.name)}</button>`
+        ? source.filter(item => !ingredients.some(selected => normalizeIngredient(selected).name === item.name) && item.name.toLowerCase().includes(query)).map(item =>
+            `<button type="button" class="quick-ingredient" data-ingredient="${escapeHtml(item.name)}">${escapeHtml(ingredientLabel(item))}</button>`
         ).join('')
         : '';
 }
@@ -161,24 +168,28 @@ function renderCatalogs() {
             }).join('')}</div>
         </section>`
     ).join('');
-    const query = $('#catalogIngredientInput').value.trim().toLowerCase();
+    const query = $('#catalogIngredientInput').value.trim();
+    const queryLower = query.toLowerCase();
     $('#allIngredients').innerHTML = availableIngredients
-        .filter(item => !query || item.name.toLowerCase().includes(query))
-        .map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`)
+        .filter(item => !query || item.name.toLowerCase().includes(queryLower))
+        .map(item => `<span class="catalog-item">${escapeHtml(ingredientLabel(item))}</span>`)
         .join('');
 }
 
 async function addCatalogIngredient() {
     const input = $('#catalogIngredientInput');
+    const amountInput = $('#catalogIngredientAmountInput');
     const name = input.value.trim();
     if (!name) return;
+    const amount = amountInput ? amountInput.value.trim() : '';
     const result = await (await fetch('/api/ingredients', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name}),
+        body: JSON.stringify({name, amount}),
     })).json();
     if (!availableIngredients.some(item => item.id === result.id)) availableIngredients.push(result);
     input.value = '';
+    if (amountInput) amountInput.value = '';
     renderCatalogs();
     renderIngredientSuggestions();
     const toast = $('#toast');
@@ -219,7 +230,7 @@ function renderRecords() {
                         ${visibleFlavors.length ? `<div class="record-tags">${visibleFlavors.map(flavor => `<span class="record-tag">${escapeHtml(formatFlavorName(flavor.name, flavor.level))}</span>`).join('')}</div>` : ''}
                     </div></div>
                     <div class="repurchase-actions">${actions}</div>
-                    <div class="record-meta">${record.ingredients.map(escapeHtml).join('、')}</div>
+                    <div class="record-meta">${record.ingredients.map(item => escapeHtml(ingredientLabel(item))).join('、')}</div>
                 </div>
             </div>
         </div>
@@ -239,7 +250,7 @@ async function loadRecords(reset = true) {
     const requestId = ++recordsRequest;
     loadingRecords = true;
     try {
-        const params = new URLSearchParams({page: nextPage, limit: settings.pagination.page_size, search: $('#recordSearch').value.replace(/\s+/g, ' ').trim()});
+        const params = new URLSearchParams({page: nextPage, limit: settings.pagination.page_size, search: $('#recordSearch').value.replace(/\\s+/g, ' ').trim()});
         const result = await (await fetch(`/api/foods?${params}`)).json();
         // 期间又发起了更新的请求，本次结果已过期，丢弃以免覆盖新结果。
         if (requestId !== recordsRequest) return;
@@ -270,7 +281,8 @@ $('#ingredientInput').addEventListener('input', async event => {
 $('#ingredientSuggestions').addEventListener('click', event => {
     const button = event.target.closest('[data-ingredient]');
     if (!button) return;
-    ingredients.unshift(button.dataset.ingredient);
+    const matched = availableIngredients.find(item => item.name === button.dataset.ingredient) || {name: button.dataset.ingredient, amount: ''};
+    ingredients.unshift({name: matched.name, amount: matched.amount || ''});
     $('#ingredientInput').value = '';
     $('#formError').textContent = '';
     renderIngredients();
@@ -308,6 +320,9 @@ $('#addCatalogIngredient').addEventListener('click', addCatalogIngredient);
 $('#catalogIngredientInput').addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
 });
+$('#catalogIngredientAmountInput').addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
+});
 let catalogIngredientSearchRequest = 0;
 $('#catalogIngredientInput').addEventListener('input', async event => {
     const search = event.target.value.trim();
@@ -318,7 +333,7 @@ $('#catalogIngredientInput').addEventListener('input', async event => {
     }
     const result = await (await fetch(`/api/ingredients?search=${encodeURIComponent(search)}&limit=${settings.pagination.ingredient_page_size}`)).json();
     if (requestId !== catalogIngredientSearchRequest) return;
-    $('#allIngredients').innerHTML = result.items.map(item => `<span class="catalog-item">${escapeHtml(item.name)}</span>`).join('');
+    $('#allIngredients').innerHTML = result.items.map(item => `<span class="catalog-item">${escapeHtml(ingredientLabel(item))}</span>`).join('');
 });
 $('#allTags').addEventListener('click', event => {
     const item = event.target.closest('[data-category-name]');
