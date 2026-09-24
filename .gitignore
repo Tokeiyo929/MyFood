@@ -1,2 +1,7 @@
 *.env
 __pycache__/
+
+# data backups
+*.dump
+_restore_tmp/
+*.dir.tar.gz

@@ -32,10 +32,13 @@ const formatFlavorName = (name, level) => {
 };
 
 // 兼容旧字符串与新的 {name, amount} 对象两种原料元素，返回统一的 {name, amount} 对象
-const normalizeIngredient = item => typeof item === 'string' ? {name: item, amount: ''} : {name: item.name, amount: item.amount || ''};
+const normalizeIngredient = item => typeof item === 'string' ? {name: item, amount: null} : {name: item.name, amount: item.amount || null};
+// amount 是数字（如50表示50%）则在显示时补%，字符串则原样
 const ingredientLabel = item => {
     const {name, amount} = normalizeIngredient(item);
-    return amount ? `${name}(${amount})` : name;
+    if (!amount && amount !== 0) return name;
+    const suffix = typeof amount === 'number' ? `${amount}%` : amount;
+    return `${name}(${suffix})`;
 };
 
 function renderOptions() {
@@ -126,7 +129,7 @@ function renderIngredientSuggestions(source = availableIngredients) {
     const query = $('#ingredientInput').value.trim().toLowerCase();
     $('#ingredientSuggestions').innerHTML = query
         ? source.filter(item => !ingredients.some(selected => normalizeIngredient(selected).name === item.name) && item.name.toLowerCase().includes(query)).map(item =>
-            `<button type="button" class="quick-ingredient" data-ingredient="${escapeHtml(item.name)}">${escapeHtml(ingredientLabel(item))}</button>`
+            `<button type="button" class="quick-ingredient" data-id="${item.id}">${escapeHtml(ingredientLabel(item))}</button>`
         ).join('')
         : '';
 }
@@ -279,9 +282,11 @@ $('#ingredientInput').addEventListener('input', async event => {
     renderIngredientSuggestions(result.items);
 });
 $('#ingredientSuggestions').addEventListener('click', event => {
-    const button = event.target.closest('[data-ingredient]');
+    const button = event.target.closest('[data-id]');
     if (!button) return;
-    const matched = availableIngredients.find(item => item.name === button.dataset.ingredient) || {name: button.dataset.ingredient, amount: ''};
+    const matched = availableIngredients.find(item => String(item.id) === String(button.dataset.id)) 
+        || {id: Number(button.dataset.id), name: button.dataset.name, amount: ''};
+    if (!matched.name) return;
     ingredients.unshift({name: matched.name, amount: matched.amount || ''});
     $('#ingredientInput').value = '';
     $('#formError').textContent = '';

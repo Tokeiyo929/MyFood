@@ -52,9 +52,7 @@ def db():
         with conn.cursor() as cursor:
             cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, brand_name VARCHAR(255) NOT NULL DEFAULT '', price NUMERIC(10, 2), categories TEXT NOT NULL DEFAULT '[]', ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, reason VARCHAR(500) NOT NULL DEFAULT '', repurchase_count INTEGER NOT NULL DEFAULT 0, image_path VARCHAR(500) NOT NULL DEFAULT '', image_metadata TEXT NOT NULL DEFAULT '{}')")
             cursor.execute("CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, parentcategories VARCHAR(255) NOT NULL DEFAULT '')")
-            cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, amount VARCHAR(100) NOT NULL DEFAULT '')")
-            # 兼容已存在的旧表：为 ingredients 补充 amount 字段（幂等）
-            cursor.execute("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS amount VARCHAR(100) NOT NULL DEFAULT ''")
+            cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
         schema_ready = True
     return conn
 
@@ -166,7 +164,7 @@ class Handler(SimpleHTTPRequestHandler):
                 params = [f'%{search}%'] if search else []
                 cursor.execute(f'SELECT COUNT(*) AS total FROM ingredients{where}', params)
                 total = cursor.fetchone()['total']
-                cursor.execute(f'SELECT id, name, amount FROM ingredients{where} ORDER BY id LIMIT %s OFFSET %s', params + [limit, offset])
+                cursor.execute(f'SELECT id, name FROM ingredients{where} ORDER BY id LIMIT %s OFFSET %s', params + [limit, offset])
                 rows = cursor.fetchall()
             conn.close()
             self.send_json({'items': rows, 'total': total, 'page': page, 'limit': limit})
@@ -178,13 +176,12 @@ class Handler(SimpleHTTPRequestHandler):
             length = int(self.headers['Content-Length'])
             item = json.loads(self.rfile.read(length))
             name = item['name'].strip()
-            amount = item.get('amount', '').strip()
             conn = db()
             with conn.cursor() as cursor:
                 cursor.execute(
-                    'INSERT INTO ingredients (name, amount) VALUES (%s, %s) '
-                    'ON CONFLICT (name) DO UPDATE SET amount = EXCLUDED.amount RETURNING id, name, amount',
-                    (name, amount),
+                    'INSERT INTO ingredients (name) VALUES (%s) '
+                    'ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id, name',
+                    (name,)
                 )
                 row = cursor.fetchone()
             conn.close()
