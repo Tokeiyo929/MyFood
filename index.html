@@ -56,7 +56,10 @@
 
       <section class="field">
         <span>原料 <b class="required-mark">*</b></span>
-        <input id="ingredientInput" type="search" placeholder="搜索原料" autocomplete="off" />
+        <div class="ingredient-entry-row">
+          <input id="ingredientInput" type="search" placeholder="搜索原料" autocomplete="off" />
+          <input id="ingredientAmountInput" type="text" inputmode="decimal" placeholder="含量% 可选" autocomplete="off" />
+        </div>
         <div class="chips" id="ingredientChips" aria-live="polite"></div>
         <div class="tag-suggestions" id="ingredientSuggestions"></div>
         <p class="form-error" id="formError" role="alert"></p>
@@ -77,7 +80,7 @@
     </section>
 
     <section id="ingredientsView" class="app-view catalog-view" hidden>
-      <div class="catalog-add-row"><input id="catalogIngredientInput" type="text" placeholder="添加原料" autocomplete="off" /><input id="catalogIngredientAmountInput" type="text" placeholder="含量（可选，如 >50%）" autocomplete="off" /><button id="addCatalogIngredient" type="button">添加</button></div>
+      <div class="catalog-add-row"><input id="catalogIngredientInput" type="text" placeholder="添加原料" autocomplete="off" /><button id="addCatalogIngredient" type="button">添加</button></div>
       <div id="allIngredients" class="catalog-list"></div>
     </section>
   </main>

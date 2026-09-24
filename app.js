@@ -181,18 +181,15 @@ function renderCatalogs() {
 
 async function addCatalogIngredient() {
     const input = $('#catalogIngredientInput');
-    const amountInput = $('#catalogIngredientAmountInput');
     const name = input.value.trim();
     if (!name) return;
-    const amount = amountInput ? amountInput.value.trim() : '';
     const result = await (await fetch('/api/ingredients', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name, amount}),
+        body: JSON.stringify({name}),
     })).json();
     if (!availableIngredients.some(item => item.id === result.id)) availableIngredients.push(result);
     input.value = '';
-    if (amountInput) amountInput.value = '';
     renderCatalogs();
     renderIngredientSuggestions();
     const toast = $('#toast');
@@ -285,14 +282,22 @@ $('#ingredientSuggestions').addEventListener('click', event => {
     const button = event.target.closest('[data-id]');
     if (!button) return;
     const matched = availableIngredients.find(item => String(item.id) === String(button.dataset.id)) 
-        || {id: Number(button.dataset.id), name: button.dataset.name, amount: ''};
+        || {id: Number(button.dataset.id), name: button.dataset.name, amount: null};
     if (!matched.name) return;
-    ingredients.unshift({name: matched.name, amount: matched.amount || ''});
+    const amountInput = $('#ingredientAmountInput');
+    const amountText = amountInput ? amountInput.value.trim() : '';
+    // 含量可选：填了数字则存数字，空则不存
+    const amountNum = amountText === '' ? null : (Number(amountText) || null);
+    ingredients.unshift({name: matched.name, amount: amountNum});
     $('#ingredientInput').value = '';
+    if (amountInput) amountInput.value = '';
     $('#formError').textContent = '';
     renderIngredients();
     renderIngredientSuggestions();
     $('#ingredientInput').focus();
+});
+$('#ingredientAmountInput').addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); $('#ingredientInput').focus(); }
 });
 $('#ingredientChips').addEventListener('click', event => {
     const index = event.target.dataset.index;
@@ -325,9 +330,7 @@ $('#addCatalogIngredient').addEventListener('click', addCatalogIngredient);
 $('#catalogIngredientInput').addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
 });
-$('#catalogIngredientAmountInput').addEventListener('keydown', event => {
-    if (event.key === 'Enter') { event.preventDefault(); addCatalogIngredient(); }
-});
+
 let catalogIngredientSearchRequest = 0;
 $('#catalogIngredientInput').addEventListener('input', async event => {
     const search = event.target.value.trim();
