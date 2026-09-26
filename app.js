@@ -129,7 +129,7 @@ function renderIngredientSuggestions(source = availableIngredients) {
     const query = $('#ingredientInput').value.trim().toLowerCase();
     $('#ingredientSuggestions').innerHTML = query
         ? source.filter(item => !ingredients.some(selected => normalizeIngredient(selected).name === item.name) && item.name.toLowerCase().includes(query)).map(item =>
-            `<button type="button" class="quick-ingredient" data-id="${item.id}">${escapeHtml(ingredientLabel(item))}</button>`
+            `<button type="button" class="quick-ingredient" data-id="${item.id}" data-name="${escapeHtml(item.name)}">${escapeHtml(ingredientLabel(item))}</button>`
         ).join('')
         : '';
 }
@@ -281,14 +281,13 @@ $('#ingredientInput').addEventListener('input', async event => {
 $('#ingredientSuggestions').addEventListener('click', event => {
     const button = event.target.closest('[data-id]');
     if (!button) return;
-    const matched = availableIngredients.find(item => String(item.id) === String(button.dataset.id)) 
-        || {id: Number(button.dataset.id), name: button.dataset.name, amount: null};
-    if (!matched.name) return;
+    const name = button.dataset.name || availableIngredients.find(item => String(item.id) === String(button.dataset.id))?.name;
+    if (!name || ingredients.some(item => normalizeIngredient(item).name === name)) return;
     const amountInput = $('#ingredientAmountInput');
     const amountText = amountInput ? amountInput.value.trim() : '';
     // 含量可选：填了数字则存数字，空则不存
     const amountNum = amountText === '' ? null : (Number(amountText) || null);
-    ingredients.unshift({name: matched.name, amount: amountNum});
+    ingredients.unshift({name, amount: amountNum});
     $('#ingredientInput').value = '';
     if (amountInput) amountInput.value = '';
     $('#formError').textContent = '';
