@@ -1,14 +1,13 @@
 <view class="page">
-  <van-cell-group>
-    <van-cell wx:for="{{groups}}" wx:key="parent" wx:for-item="group" title="{{group.parent}}" is-link
+  <view class="group" wx:for="{{groups}}" wx:key="parent" wx:for-item="group">
+    <van-cell title="{{group.parent}}" is-link
       value="{{expandedParent === group.parent ? '收起' : '展开'}}" bindtap="toggleGroup" data-parent="{{group.parent}}" />
-    <block wx:if="{{expandedParent === group.parent}}">
+    <view wx:if="{{expandedParent === group.parent}}" class="group-items">
       <van-cell wx:for="{{group.items}}" wx:for-item="item" wx:key="id" title="{{item.name}}"
         bindtap="openCategory" data-name="{{item.name}}" data-parent="{{group.parent}}" />
-    </block>
-  </van-cell-group>
-
-  <view wx:if="{{!groups.length && !loading}}" class="empty"><van-empty description="暂无产品类别" /></view>
+    </view>
+  </view>
+  <view wx:if="{{!groups.length && !loading}}" class="empty"><van-empty description="暂无类别" /></view>
 </view>
 
 <van-popup show="{{modal}}" position="bottom" round bind:close="closeModal">
