@@ -10,10 +10,10 @@ module.exports = {
     return fmt.levelText(flavor.level || 50) + flavor.name;
   },
   ingredientLabel: function(item) {
-    return item.amount ? item.name + ("(" + item.amount + "%)") : item.name;
+    return item.amount ? item.name + "(" + item.amount + "%)" : item.name;
   }
 }
-<\/wxs>
+</wxs>
 
 <view class="page">
   <!-- 提交表单 -->
@@ -117,7 +117,7 @@ module.exports = {
           <view class="record-tags" wx:if="{{item.flavors.length}}">
             <text class="record-tag" wx:for="{{item.flavors}}" wx:key="name" wx:for-item="fl">{{fmt.flavorText(fl)}}</text>
           </view>
-          <text class="record-meta" wx:if="{{item.ingredients.length}}">{{item.ingredients[0].name}}{{item.ingredients.length > 1 ? ' 等' : ''}}</text>
+          <text class="record-meta" wx:if="{{item.ingredients.length}}">{{item.ingredients[0].name}}</text>
         </view>
       </view>
       <!-- 复购/理由按钮区 -->
