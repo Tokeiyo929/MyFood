@@ -1,17 +1,20 @@
 .page { padding: 16px; padding-bottom: 20px; }
-.card { background: #fff; margin-bottom: 16px; }
-.suggestions { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 16px; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 16px; }
-.field { margin-bottom: 12px; padding: 0 16px; }
+.card { background: #fff; margin-bottom: 16px; padding: 4px 0; }
+.suggestions { display: flex; flex-wrap: wrap; padding: 4px 16px; }
+.chips { display: flex; flex-wrap: wrap; margin: 4px 16px; }
+.field { padding: 4px 16px; }
 .label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
 .wheel-wrap { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
 .flavor-canvas { width: 220px; height: 220px; }
-.preference-panel { display: flex; align-items: center; gap: 10px; }
+.preference-panel { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
 .pref-face { font-size: 28px; }
 .pref-label { font-size: 14px; min-width: 48px; }
 .records { margin-top: 8px; }
 .record-inner { margin-bottom: 8px; background: #fff; }
-.detail { padding: 0 16px 12px; background: #fff; }
+.cell-label { display: flex; flex-wrap: wrap; margin-top: 4px; }
+.detail { padding: 10px 16px; background: #fff; }
+.detail-block { display: flex; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.detail-head { font-weight: 600; font-size: 13px; margin-right: 4px; }
 .repurchase-actions { display: flex; gap: 8px; margin-top: 8px; }
+.repurchase-count { color: #999; font-size: 12px; display: block; margin-top: 6px; }
 .loading-hint { text-align: center; color: #999; padding: 14px 0; }
-.empty-wrap { padding: 20px 0; }

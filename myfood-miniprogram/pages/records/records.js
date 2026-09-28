@@ -255,9 +255,9 @@ Page({
   },
 
   chooseImage() {
-    wx.chooseMedia({ count: 1, mediaType: ['image'], success: (res) => this.setData({ imagePath: res.tempFiles[0].tempFilePath }) });
+    wx.chooseMedia({ count: 1, mediaType: ['image'], success: (res) => { const path = res.tempFiles[0].tempFilePath; this.setData({ imagePath: path, fileList: [{ url: path }] }); } });
   },
-  removeImage() { this.setData({ imagePath: '' }); },
+  removeImage() { this.setData({ imagePath: '', fileList: [] }); },
 
   onIngredientSearch(e) {
     const q = e.detail.value.trim();

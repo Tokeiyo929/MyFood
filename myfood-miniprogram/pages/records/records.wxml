@@ -1,5 +1,9 @@
 <view class="page">
   <view class="card">
+    <view class="field">
+      <text class="label">图片</text>
+      <van-uploader file-list="{{fileList}}" max-count="1" bind:after-read="chooseImage" bind:delete="removeImage" />
+    </view>
     <van-field label="产品名称" value="{{dishName}}" bindinput="onDishName" placeholder="产品名称" />
     <van-field label="生产者" value="{{brandName}}" bindinput="onBrandName" placeholder="生产者" />
     <van-field label="价格" value="{{price}}" type="number" bindinput="onPrice" placeholder="价格" />
@@ -40,15 +44,24 @@
 
   <view class="records">
     <view class="record-inner" wx:for="{{records}}" wx:key="id">
-      <van-cell title="{{item.name}}" value="{{item.brand_name}}" is-link bindtap="toggleDetail" data-id="{{item.id}}" />
+      <van-cell title="{{item.name}}" value="{{item.brand_name}}" is-link bindtap="toggleDetail" data-id="{{item.id}}">
+        <view slot="label" class="cell-label" wx:if="{{item.flavorLabels && item.flavorLabels.length}}">
+          <van-tag wx:for="{{item.flavorLabels}}" wx:key="*this" type="primary" plain style="margin-right:6px">{{item}}</van-tag>
+        </view>
+      </van-cell>
       <view wx:if="{{expandedId === item.id}}" class="detail">
         <view wx:if="{{item.reason}}">理由：{{item.reason}}</view>
         <view wx:if="{{item.price}}">价格：{{item.price}}</view>
         <view wx:if="{{item.categories.length}}">类别：{{item.categories}}</view>
+        <view class="detail-block" wx:if="{{item.ingredientLabels && item.ingredientLabels.length}}">
+          <text class="detail-head">材料：</text>
+          <van-tag wx:for="{{item.ingredientLabels}}" wx:key="*this" type="warning" style="margin-right:6px">{{item}}</van-tag>
+        </view>
         <view wx:if="{{item.pickable}}" class="repurchase-actions">
           <van-button size="mini" type="primary" data-id="{{item.id}}" data-value="{{prefGood}}" bindtap="repurchase">偏好吃</van-button>
           <van-button size="mini" type="danger" data-id="{{item.id}}" data-value="{{prefBad}}" bindtap="repurchase">偏难吃</van-button>
         </view>
+        <text wx:if="{{item.repurchase_count}}" class="repurchase-count">已复购 {{item.repurchase_count}} 次</text>
       </view>
     </view>
     <view wx:if="{{!records.length && !loading}}"><van-empty description="暂无记录" /></view>
