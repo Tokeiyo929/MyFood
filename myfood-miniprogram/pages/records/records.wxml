@@ -32,6 +32,9 @@
     <van-field wx:if="{{reasonField === 'bad'}}" label="难吃理由" value="{{badlyReason}}" bindinput="onBadlyReason" placeholder="请输入难吃理由" />
     <van-field wx:if="{{reasonField === 'good'}}" label="推荐理由" value="{{goodReason}}" bindinput="onGoodReason" placeholder="请输入推荐理由" />
     <van-field label="原料" value="{{ingredientSearch}}" bindinput="onIngredientSearch" placeholder="搜索原料" />
+    <view class="entry-row">
+      <van-field label="含量%" value="{{ingredientAmount}}" type="number" bindinput="onIngredientAmount" placeholder="含量" />
+    </view>
     <view class="chips">
       <van-tag closeable wx:for="{{ingredients}}" wx:key="index" data-idx="{{index}}" bindtap="removeIngredient" style="margin:4px">{{item.name}}{{item.amount ? '(' + item.amount + '%)' : ''}}</van-tag>
     </view>
