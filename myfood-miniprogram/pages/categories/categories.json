@@ -1,11 +1,12 @@
-{
+﻿{
   "navigationBarTitleText": "产品类别",
   "usingComponents": {
-    "van-cell": "@vant/weapp/dist/cell/index",
-    "van-cell-group": "@vant/weapp/dist/cell-group/index",
-    "van-tag": "@vant/weapp/dist/tag/index",
-    "van-empty": "@vant/weapp/dist/empty/index",
-    "van-popup": "@vant/weapp/dist/popup/index",
-    "van-icon": "@vant/weapp/dist/icon/index"
+    "van-cell": "@vant/weapp/cell/index",
+    "van-cell-group": "@vant/weapp/cell-group/index",
+    "van-tag": "@vant/weapp/tag/index",
+    "van-empty": "@vant/weapp/empty/index",
+    "van-popup": "@vant/weapp/popup/index",
+    "van-icon": "@vant/weapp/icon/index"
   }
 }
+
