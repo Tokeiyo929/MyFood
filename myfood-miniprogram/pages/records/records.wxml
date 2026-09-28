@@ -1,13 +1,14 @@
 <wxs module="fmt">
+function levelText(level) {
+  if (level < 25) return "不";
+  if (level < 50) return "微";
+  if (level < 75) return "";
+  return "太";
+}
 module.exports = {
-  levelText: function(level) {
-    if (level < 25) return "不";
-    if (level < 50) return "微";
-    if (level < 75) return "";
-    return "太";
-  },
+  levelText: levelText,
   flavorText: function(flavor) {
-    return fmt.levelText(flavor.level || 50) + flavor.name;
+    return levelText(flavor.level || 50) + flavor.name;
   },
   ingredientLabel: function(item) {
     return item.amount ? item.name + "(" + item.amount + "%)" : item.name;
@@ -114,8 +115,8 @@ module.exports = {
         <view class="record-info">
           <text class="record-name">{{item.name}}</text>
           <text class="record-brand" wx:if="{{item.brand_name}}">{{item.brand_name}}</text>
-          <view class="record-tags" wx:if="{{item.flavors.length}}">
-            <text class="record-tag" wx:for="{{item.flavors}}" wx:key="name" wx:for-item="fl">{{fmt.flavorText(fl)}}</text>
+          <view class="record-tags" wx:if="{{item.flavorLabels && item.flavorLabels.length}}">
+            <text class="record-tag" wx:for="{{item.flavorLabels}}" wx:key="*this">{{item}}</text>
           </view>
         </view>
       </view>
@@ -134,7 +135,7 @@ module.exports = {
         <text class="detail-line" wx:if="{{item.categories.length}}">类别：{{item.categories}}</text>
         <view class="detail-block" wx:if="{{item.ingredients.length}}">
           <text class="detail-head">材料：</text>
-          <text class="detail-tag" wx:for="{{item.ingredients}}" wx:key="name" wx:for-item="ig">{{fmt.ingredientLabel(ig)}}</text>
+          <text class="detail-tag" wx:for="{{item.ingredientLabels}}" wx:key="*this">{{item}}</text>
         </view>
       </view>
     </view>
