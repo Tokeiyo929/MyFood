@@ -259,14 +259,16 @@ Page({
   },
   removeImage() { this.setData({ imagePath: '' }); },
 
-  async onIngredientSearch(e) {
+  onIngredientSearch(e) {
     const q = e.detail.value.trim();
     this.setData({ ingredientSearch: q });
     if (!q) { this.setData({ ingredientSuggestions: [] }); return; }
-    try {
-      const result = await api.searchIngredients(q, 50);
-      this.setData({ ingredientSuggestions: result.items });
-    } catch (err) { this.setData({ ingredientSuggestions: [] }); }
+    const that = this;
+    api.searchIngredients(q, 50).then(function(result) {
+      that.setData({ ingredientSuggestions: result.items || [] });
+    }).catch(function() {
+      that.setData({ ingredientSuggestions: [] });
+    });
   },
 
   pickIngredient(e) {
