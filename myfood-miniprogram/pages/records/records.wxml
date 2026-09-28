@@ -140,5 +140,5 @@ module.exports = {
       </view>
     </view>
   </view>
-  <view class="load-more" wx:if="{{hasMore && records.length}}" bindtap="loadMore">加载更多</view>
+  <view wx:if="{{hasMore && records.length}}" class="loading-hint">上拉加载更多</view>
 </view>

@@ -358,5 +358,9 @@ Page({
     }
   },
 
-  loadMore() { this.loadRecords(false); },
+  onReachBottom() {
+    if (this.data.hasMore) this.loadRecords(false);
+  },
+
+  onReachBottomDistance: 100,
 });
