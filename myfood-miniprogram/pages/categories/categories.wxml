@@ -1,0 +1,32 @@
+<view class="page">
+  <view class="catalog-group" wx:for="{{groups}}" wx:key="parent" wx:for-item="group">
+    <view class="catalog-group-title" data-parent="{{group.parent}}" bindtap="toggleGroup">
+      <text>{{group.parent}}</text>
+      <text class="group-arrow">{{expandedParent === group.parent ? '▼' : '►'}}</text>
+    </view>
+    <view class="catalog-group-items" wx:if="{{expandedParent === group.parent}}">
+      <view class="catalog-item" wx:for="{{group.items}}" wx:for-item="item" wx:key="id"
+            data-name="{{item.name}}" data-parent="{{group.parent}}" bindtap="openCategory">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!groups.length && !loading}}">暂无产品类别</view>
+</view>
+
+<!-- 类别食物弹窗 -->
+<view class="modal" wx:if="{{modal}}">
+  <view class="modal-backdrop" bindtap="closeModal"></view>
+  <view class="modal-panel">
+    <view class="modal-header">
+      <text class="modal-title">{{modal.name}}</text>
+      <text class="modal-close" bindtap="closeModal">×</text>
+    </view>
+    <view class="modal-foods">
+      <view class="modal-food" wx:for="{{modal.foods}}" wx:key="id">
+        <image wx:if="{{item.image_path}}" src="{{item.image_path}}" class="modal-food-img" mode="aspectFill" />
+        <text class="modal-food-name">{{item.name}}</text>
+      </view>
+      <text class="modal-empty" wx:if="{{!modal.foods.length}}">暂无对应食品</text>
+    </view>
+  </view>
+</view>
