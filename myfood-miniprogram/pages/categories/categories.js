@@ -36,7 +36,7 @@ Page({
     const parent = e.currentTarget.dataset.parent;
     try {
       // 查询该类别下的食物
-      const result = await api.getFoods(1, 50, '');
+      const result = await api.getFoodsByCategory(parent, 200);
       const foods = (result.items || []).filter(f => (f.categories || []).includes(name) || (f.categories || []).includes(parent));
       this.setData({ modal: { name, foods } });
     } catch (err) {

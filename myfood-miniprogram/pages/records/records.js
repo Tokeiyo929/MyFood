@@ -107,7 +107,7 @@ Page({
         ...record,
         prefClass: record.preference === excellent ? 'preference-excellent' : record.preference === bad ? 'preference-bad' : 'preference-good',
         pickable: record.preference !== bad && record.preference !== excellent,
-        flavorLabels: (record.flavors || []).map(f => flavorLabel(f.name, f.level)),
+        flavorLabels: (record.flavors || []).filter(f => f.level && f.level !== (scale.default_level)).map(f => flavorLabel(f.name, f.level)),
         ingredientLabels: (record.ingredients || []).map(it => it.amount ? it.name + '(' + it.amount + '%)' : it.name),
       }));
       this.setData({ records, page, hasMore: records.length < result.total });

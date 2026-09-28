@@ -121,13 +121,13 @@ module.exports = {
         </view>
       </view>
       <!-- 复购/理由按钮区 -->
-      <view class="repurchase-actions" wx:if="{{item.pickable}}">
+      <view class="repurchase-actions" wx:if="{{expandedId === item.id && item.pickable}}">
         <button class="repurchase-choice" data-id="{{item.id}}" data-value="{{prefGood}}" bindtap="repurchase">偏好吃</button>
         <button class="repurchase-choice bad" data-id="{{item.id}}" data-value="{{prefBad}}" bindtap="repurchase">偏难吃</button>
         <text class="repurchase-count">已复购 {{item.repurchase_count}} 次</text>
       </view>
-      <view class="reason-display" wx:elif="{{item.preference === prefBad}}">难吃理由：{{item.reason}}</view>
-      <view class="reason-display good" wx:elif="{{item.preference === prefExcellent}}">推荐理由：{{item.reason}}</view>
+      <view class="reason-display" wx:elif="{{expandedId === item.id && item.preference === prefBad}}">难吃理由：{{item.reason}}</view>
+      <view class="reason-display good" wx:elif="{{expandedId === item.id && item.preference === prefExcellent}}">推荐理由：{{item.reason}}</view>
 
       <!-- 展开详情 -->
       <view class="detail" wx:if="{{expandedId === item.id}}">
