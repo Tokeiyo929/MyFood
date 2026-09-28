@@ -247,18 +247,18 @@ Page({
     this.setData({ preference: pref.value, preferenceFace: pref.face, preferenceLabel: pref.label, reasonField, prefLevel: pref.level });
   },
 
-  onBadlyReason(e) { this.setData({ badlyReason: e.detail.value }); },
-  onGoodReason(e) { this.setData({ goodReason: e.detail.value }); },
+  onBadlyReason(e) { this.setData({ badlyReason: e.detail }); },
+  onGoodReason(e) { this.setData({ goodReason: e.detail }); },
 
-  onDishName(e) { this.setData({ dishName: e.detail.value }); },
-  onBrandName(e) { this.setData({ brandName: e.detail.value }); },
-  onPrice(e) { this.setData({ price: e.detail.value }); },
-  onIngredientAmount(e) { this.setData({ ingredientAmount: e.detail.value }); },
-  onRecordSearch(e) { this.setData({ recordSearch: e.detail.value }); this.loadRecords(true); },
+  onDishName(e) { this.setData({ dishName: e.detail }); },
+  onBrandName(e) { this.setData({ brandName: e.detail }); },
+  onPrice(e) { this.setData({ price: e.detail }); },
+  onIngredientAmount(e) { this.setData({ ingredientAmount: e.detail }); },
+  onRecordSearch(e) { this.setData({ recordSearch: e.detail }); this.loadRecords(true); },
 
   // 产品类别搜索 + chips
   onCategorySearch(e) {
-    const q = e.detail.value;
+    const q = e.detail;
     this.setData({ categorySearch: q });
     const all = this.data.categories.map(c => c.name);
     const selected = this.data.selectedCategory ? [this.data.selectedCategory] : [];
@@ -279,7 +279,7 @@ Page({
   removeImage() { this.setData({ imagePath: '', fileList: [] }); },
 
   onIngredientSearch(e) {
-    const q = e.detail.value.trim();
+    const q = e.detail.trim();
     this.setData({ ingredientSearch: q });
     if (!q) { this.setData({ ingredientSuggestions: [] }); return; }
     const that = this;
