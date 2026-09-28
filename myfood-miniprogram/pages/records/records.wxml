@@ -13,6 +13,32 @@
       <text class="label">价格</text>
       <input value="{{price}}" bindinput="onPrice" type="digit" placeholder="价格" />
     </view>
+
+    <!-- 产品类别 -->
+    <view class="field" wx:if="{{categories.length}}">
+      <text class="label">产品类别</text>
+      <picker bindchange="onCategory" range="{{categories}}" range-key="name">
+        <view class="picker">{{selectedCategory || '选择类别'}}</view>
+      </picker>
+    </view>
+
+    <!-- 口味 -->
+    <view class="field" wx:if="{{flavors.length}}">
+      <text class="label">口味</text>
+      <view class="flavor-row" wx:for="{{flavors}}" wx:key="*this">
+        <text class="flavor-name">{{item}}</text>
+        <slider min="0" max="100" value="{{flavorLevels[item]}}" data-flavor="{{item}}" bindchange="onFlavor" style="flex:1" />
+      </view>
+    </view>
+
+    <!-- 偏好 -->
+    <view class="field">
+      <text class="label">偏好</text>
+      <picker bindchange="onPreference" range="{{preferenceOptions}}" range-key="value">
+        <view class="picker">{{preference}}</view>
+      </picker>
+    </view>
+
     <view class="field">
       <text class="label">原料 *</text>
       <view class="entry-row">
@@ -30,6 +56,7 @@
         </view>
       </view>
     </view>
+
     <button class="save-btn" bindtap="submit">保存记录</button>
   </view>
 

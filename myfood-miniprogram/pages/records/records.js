@@ -3,6 +3,14 @@ const api = require('../../utils/api');
 Page({
   data: {
     settings: null,
+    flavors: [],
+    flavorLevels: {},
+    preferenceOptions: [
+      { value: '推荐吃', face: '😄' },
+      { value: '偏好吃', face: '🙂' },
+      { value: '偏难吃', face: '😞' },
+    ],
+    preference: '偏好吃',
     dishName: '',
     brandName: '',
     price: '',
@@ -10,6 +18,8 @@ Page({
     ingredientSuggestions: [],
     ingredientAmount: '',
     ingredients: [],
+    categories: [],
+    selectedCategory: '',
     records: [],
     recordSearch: '',
     page: 1,
@@ -19,6 +29,7 @@ Page({
 
   onLoad() {
     this.loadConfig();
+    this.loadCategories();
     this.loadRecords(true);
   },
 
@@ -29,10 +40,17 @@ Page({
   async loadConfig() {
     try {
       const config = await api.getConfig();
-      this.setData({ settings: config });
-    } catch (e) {
-      wx.showToast({ title: '配置加载失败', icon: 'none' });
-    }
+      const flavorLevels = {};
+      config.flavors.forEach(f => flavorLevels[f] = 50);
+      this.setData({ settings: config, flavors: config.flavors, flavorLevels });
+    } catch (e) {}
+  },
+
+  async loadCategories() {
+    try {
+      const result = await api.getCategories();
+      this.setData({ categories: result.items });
+    } catch (e) {}
   },
 
   async loadRecords(reset) {
@@ -43,20 +61,22 @@ Page({
       const result = await api.getFoods(page, 20, this.data.recordSearch);
       const records = reset ? result.items : this.data.records.concat(result.items);
       this.setData({ records, page, hasMore: records.length < result.total });
-    } catch (e) {
-      wx.showToast({ title: e.message || '加载失败', icon: 'none' });
-    } finally {
-      this.setData({ loading: false });
-    }
+    } catch (e) {} finally { this.setData({ loading: false }); }
   },
 
   onDishName(e) { this.setData({ dishName: e.detail.value }); },
   onBrandName(e) { this.setData({ brandName: e.detail.value }); },
   onPrice(e) { this.setData({ price: e.detail.value }); },
   onIngredientAmount(e) { this.setData({ ingredientAmount: e.detail.value }); },
-  onRecordSearch(e) {
-    this.setData({ recordSearch: e.detail.value });
-    this.loadRecords(true);
+  onRecordSearch(e) { this.setData({ recordSearch: e.detail.value }); this.loadRecords(true); },
+  onCategory(e) { this.setData({ selectedCategory: e.detail.value }); },
+  onPreference(e) { this.setData({ preference: this.data.preferenceOptions[e.detail.value].value }); },
+  onFlavor(e) {
+    const f = e.currentTarget.dataset.flavor;
+    const level = Number(e.detail.value);
+    const flavorLevels = this.data.flavorLevels;
+    flavorLevels[f] = level;
+    this.setData({ flavorLevels });
   },
 
   async onIngredientSearch(e) {
@@ -66,9 +86,7 @@ Page({
     try {
       const result = await api.searchIngredients(q, 50);
       this.setData({ ingredientSuggestions: result.items });
-    } catch (err) {
-      this.setData({ ingredientSuggestions: [] });
-    }
+    } catch (err) { this.setData({ ingredientSuggestions: [] }); }
   },
 
   pickIngredient(e) {
@@ -87,9 +105,12 @@ Page({
     this.setData({ ingredients });
   },
 
-  ingredientLabel(item) {
-    if (!item.amount) return item.name;
-    return item.name + '(' + item.amount + '%)';
+  flavorLabel(name) {
+    const lv = this.data.flavorLevels[name] || 50;
+    if (lv < 25) return '不' + name;
+    if (lv < 50) return '微' + name;
+    if (lv < 75) return name;
+    return '太' + name;
   },
 
   async submit() {
@@ -97,14 +118,16 @@ Page({
       wx.showToast({ title: '请添加原料', icon: 'none' });
       return;
     }
+    const flavors = this.data.flavors.filter(f => (this.data.flavorLevels[f] || 50) > 50)
+      .map(f => ({ name: f, level: this.data.flavorLevels[f] }));
     const record = {
       name: this.data.dishName,
       brand_name: this.data.brandName,
       price: this.data.price === '' ? null : Number(this.data.price),
-      categories: [],
+      categories: this.data.selectedCategory ? [this.data.selectedCategory] : [],
       ingredients: this.data.ingredients,
-      flavors: [],
-      preference: '偏好吃',
+      flavors,
+      preference: this.data.preference,
       reason: '',
       image_path: '',
       image_metadata: {},
@@ -115,7 +138,7 @@ Page({
       await api.submitFood(record);
       wx.hideLoading();
       wx.showToast({ title: '保存成功', icon: 'success' });
-      this.setData({ dishName: '', brandName: '', price: '', ingredients: [] });
+      this.setData({ dishName: '', brandName: '', price: '', ingredients: [], selectedCategory: '' });
       this.loadRecords(true);
     } catch (e) {
       wx.hideLoading();
@@ -123,7 +146,5 @@ Page({
     }
   },
 
-  loadMore() {
-    this.loadRecords(false);
-  },
+  loadMore() { this.loadRecords(false); },
 });

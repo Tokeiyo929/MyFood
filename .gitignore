@@ -5,3 +5,6 @@ __pycache__/
 *.dump
 _restore_tmp/
 *.dir.tar.gz
+
+# wechat miniprogram private
+myfood-miniprogram/project.private.config.json
