@@ -1,11 +1,14 @@
 .page { padding: 0; }
 .group { background: #fff; margin-bottom: 8px; }
-.group-items { border-top: 1px solid #f0f0f0; }
+.group-grid { display: flex; flex-wrap: wrap; border-top: 1px solid #f0f0f0; }
+.group-item { width: 25%; box-sizing: border-box; padding: 8px; text-align: center; }
+.group-item-img { width: 60px; height: 60px; border-radius: 8px; display: block; margin: 0 auto 4px; }
+.group-item-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .empty { padding: 40px 0; }
 .modal-panel { padding: 16px; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .modal-title { font-size: 17px; font-weight: 700; }
-.modal-foods { display: flex; flex-wrap: wrap; gap: 12px; }
-.modal-food { width: 88px; text-align: center; }
-.modal-food-img { width: 88px; height: 88px; border-radius: 8px; }
-.modal-food-name { font-size: 12px; margin-top: 4px; display: block; }
+.modal-grid { display: flex; flex-wrap: wrap; }
+.modal-item { width: 25%; box-sizing: border-box; padding: 8px; text-align: center; }
+.modal-item-img { width: 70px; height: 70px; border-radius: 8px; display: block; margin: 0 auto 4px; }
+.modal-item-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }

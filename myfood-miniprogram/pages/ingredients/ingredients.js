@@ -3,9 +3,11 @@ const api = require('../../utils/api');
 Page({
   data: {
     newName: '',
+    search: '',
     ingredients: [],
     page: 1,
     total: 0,
+    loading: false,
   },
 
   onShow() {
@@ -13,20 +15,23 @@ Page({
   },
 
   async loadIngredients(reset) {
-    const page = reset ? 1 : this.data.page + 1;
+    this.setData({ loading: true });
     try {
-      const result = await api.searchIngredients('', 100);
-      this.setData({ ingredients: result.items, total: result.total, page });
+      const result = await api.searchIngredients(this.data.search, 200);
+      this.setData({ ingredients: result.items, total: result.total });
     } catch (e) {
       wx.showToast({ title: '加载失败', icon: 'none' });
+    } finally {
+      this.setData({ loading: false });
     }
   },
 
-  onNewName(e) { this.setData({ newName: e.detail.value }); },
+  onNewName(e) { this.setData({ newName: e.detail }); },
+  onSearch(e) { this.setData({ search: e.detail }); this.loadIngredients(true); },
 
   async addIngredient() {
-    const name = this.data.newName.trim();
-    if (!name) return;
+    const name = (this.data.newName || '').trim();
+    if (!name) { wx.showToast({ title: '请输入原料名', icon: 'none' }); return; }
     try {
       await api.addIngredient(name);
       wx.showToast({ title: '添加成功', icon: 'success' });
@@ -36,6 +41,4 @@ Page({
       wx.showToast({ title: '添加失败', icon: 'none' });
     }
   },
-
-  loadMore() { this.loadIngredients(false); },
 });

@@ -1,5 +1,5 @@
-.page { padding: 16px; }
-.add-row { display: flex; gap: 8px; margin-bottom: 12px; }
-.add-row input { flex: 1; border: 1px solid #e5dff0; border-radius: 8px; padding: 8px 10px; }
-.search { border: 1px solid #e5dff0; border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; width: 100%; box-sizing: border-box; }
-.item { padding: 10px; background: #fff; border-radius: 8px; margin-bottom: 6px; }
+.page { padding: 0; }
+.add-row { background: #fff; display: flex; align-items: center; padding: 8px 16px; }
+.grid { display: flex; flex-wrap: wrap; background: #fff; }
+.grid-item { width: 25%; box-sizing: border-box; padding: 10px 6px; text-align: center; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+.empty { padding: 40px 0; }
