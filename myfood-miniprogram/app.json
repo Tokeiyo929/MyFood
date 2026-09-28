@@ -18,15 +18,21 @@
     "list": [
       {
         "pagePath": "pages/categories/categories",
-        "text": "产品类别"
+        "text": "产品类别",
+        "iconPath": "images/category.png",
+        "selectedIconPath": "images/category-active.png"
       },
       {
         "pagePath": "pages/records/records",
-        "text": "记录"
+        "text": "记录",
+        "iconPath": "images/record.png",
+        "selectedIconPath": "images/record-active.png"
       },
       {
         "pagePath": "pages/ingredients/ingredients",
-        "text": "原料"
+        "text": "原料",
+        "iconPath": "images/ingredient.png",
+        "selectedIconPath": "images/ingredient-active.png"
       }
     ]
   },
