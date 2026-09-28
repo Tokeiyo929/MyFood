@@ -91,7 +91,7 @@ module.exports = {
         <input value="{{ingredientAmount}}" bindinput="onIngredientAmount" placeholder="含量%" />
       </view>
       <view class="suggestions" wx:if="{{ingredientSuggestions.length}}">
-        <view class="suggest" wx:for="{{ingredientSuggestions}}" wx:key="id" data-idx="{{index}}" bindtap="pickIngredient">{{item.name}}</view>
+        <view class="suggest" wx:for="{{ingredientSuggestions}}" wx:key="index" data-idx="{{index}}" bindtap="pickIngredient">{{item.name}}</view>
       </view>
       <view class="chips">
         <view class="chip" wx:for="{{ingredients}}" wx:key="index">
