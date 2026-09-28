@@ -44,13 +44,17 @@ Page({
   onLoad() {
     this.loadConfig();
     this.loadCategories();
-    this.loadRecords(true);
+  },
+
+  onReady() {
+    if (this.data.flavors.length) this.drawWheel();
   },
 
   onShow() {
-    if (this.data.settings) this.loadRecords(true);
-    // 页面显示时重绘雷达图
-    if (this.data.flavors.length) this.drawWheel();
+    if (this.data.settings) {
+      this.loadRecords(true);
+      if (this.data.flavors.length) this.drawWheel();
+    }
   },
 
   async loadConfig() {
@@ -73,8 +77,13 @@ Page({
         prefBad: config.preferences.bad.value,
         prefExcellent: config.preferences.excellent.value,
         prefLevel: config.preferences.good.level,
-      }, () => this.drawWheel());
-    } catch (e) {}
+      }, () => {
+        this.drawWheel();
+        this.loadRecords(true);
+      });
+    } catch (e) {
+      this.loadRecords(true);
+    }
   },
 
   async loadCategories() {
