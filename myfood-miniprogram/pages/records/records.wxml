@@ -59,7 +59,7 @@ module.exports = {
       <text class="label">味道</text>
       <view class="wheel-wrap">
         <canvas canvas-id="flavorWheel" id="flavorWheel" class="flavor-canvas"
-          bindtouchstart="onWheelTouch" bindtouchmove="onWheelMove" />
+          catchtouchstart="onWheelTouch" catchtouchmove="onWheelMove" />
         <view class="flavor-reset" bindtap="resetFlavors">↻ 重置</view>
       </view>
     </view>

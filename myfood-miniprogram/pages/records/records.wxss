@@ -31,9 +31,9 @@ input, textarea { border: 1px solid #e5dff0; border-radius: 8px; padding: 12px 1
 .record.preference-excellent { border-left-color: #2c9e5f; }
 .record.preference-bad { border-left-color: #c0504d; }
 .record.preference-good { border-left-color: #d9c7ff; }
-.record-main { display: flex; gap: 10px; padding: 12px; }
+.record-main { display: flex; align-items: center; gap: 10px; padding: 12px; }
 .record-img { width: 64px; height: 64px; border-radius: 10px; flex-shrink: 0; }
-.record-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; flex: 1; }
+.record-info { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 4px; flex: 1; }
 .record-name { font-weight: 700; }
 .record-brand { color: #888; font-size: 13px; }
 .record-tags { display: flex; flex-wrap: wrap; gap: 4px; }

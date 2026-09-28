@@ -4,7 +4,6 @@ Page({
   data: {
     newName: '',
     ingredients: [],
-    search: '',
     page: 1,
     total: 0,
   },
@@ -16,7 +15,7 @@ Page({
   async loadIngredients(reset) {
     const page = reset ? 1 : this.data.page + 1;
     try {
-      const result = await api.searchIngredients(this.data.search, 100);
+      const result = await api.searchIngredients('', 100);
       this.setData({ ingredients: result.items, total: result.total, page });
     } catch (e) {
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -24,10 +23,6 @@ Page({
   },
 
   onNewName(e) { this.setData({ newName: e.detail.value }); },
-  onSearch(e) {
-    this.setData({ search: e.detail.value });
-    this.loadIngredients(true);
-  },
 
   async addIngredient() {
     const name = this.data.newName.trim();
