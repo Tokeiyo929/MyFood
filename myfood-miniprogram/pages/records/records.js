@@ -1,4 +1,6 @@
 const api = require('../../utils/api');
+let recordsRequest = 0;
+let ingredientRequest = 0;
 
 // 雷达图常量（与 web 端一致）
 const WHEEL = { size: 220, center: 110, radius: 76, labelRadius: 95, handleRadius: 7 };
@@ -14,7 +16,6 @@ Page({
     preferenceLabel: '',
     // 动态理由字段
     reasonField: 'none',     // 'none' | 'bad' | 'good'
-    reason: '',
     badlyReason: '',
     goodReason: '',
     dishName: '',
@@ -34,6 +35,7 @@ Page({
     hasMore: true,
     loading: false,
     imagePath: '',
+    fileList: [],
     expandedId: null,
     prefGood: '',
     prefBad: '',
@@ -94,11 +96,14 @@ Page({
   },
 
   async loadRecords(reset) {
-    if (this.data.loading) return;
+    if (!reset && this.data.loading) return;
+    const requestId = ++recordsRequest;
     this.setData({ loading: true });
     const page = reset ? 1 : this.data.page + 1;
     try {
-      const result = await api.getFoods(page, 20, this.data.recordSearch);
+      const limit = this.data.settings ? this.data.settings.pagination.page_size : 20;
+      const result = await api.getFoods(page, limit, this.data.recordSearch);
+      if (requestId !== recordsRequest) return;
       let records = reset ? result.items : this.data.records.concat(result.items);
       const bad = this.data.prefBad, good = this.data.prefGood, excellent = this.data.prefExcellent;
       const scale = this.data.settings ? this.data.settings.flavor_scale : {default_level:50, low_threshold:25, mid_threshold:50, high_threshold:75};
@@ -111,7 +116,9 @@ Page({
         ingredientLabels: (record.ingredients || []).map(it => it.amount ? it.name + '(' + it.amount + '%)' : it.name),
       }));
       this.setData({ records, page, hasMore: records.length < result.total });
-    } catch (e) {} finally { this.setData({ loading: false }); }
+    } catch (e) {} finally {
+      if (requestId === recordsRequest) this.setData({ loading: false });
+    }
   },
 
   // ---------- 雷达图 ----------
@@ -186,13 +193,12 @@ Page({
     const touch = e.touches[0] || e.changedTouches[0];
     if (!touch) return;
     const that = this;
-    wx.createSelectorQuery().select(chr(39)+chr(35)+chr(102)+chr(108)+chr(97)+chr(118)+chr(111)+chr(114)+chr(87)+chr(104)+chr(101)+chr(101)+chr(108)+chr(39)).boundingClientRect(function(rect) {
+    wx.createSelectorQuery().select('#flavorWheel').boundingClientRect(function(rect) {
       if (!rect) return;
       const scale = WHEEL.size / rect.width;
       const x = (touch.clientX - rect.left) * scale - WHEEL.center;
       const y = (touch.clientY - rect.top) * scale - WHEEL.center;
       const flavors = that.data.flavors;
-      const sc = that.data.settings.flavor_scale;
       let best = 0, bestDot = -Infinity;
       flavors.forEach(function(v, i) {
         const a = -Math.PI / 2 + i * Math.PI * 2 / flavors.length;
@@ -210,7 +216,7 @@ Page({
     const axis = this.data.draggingAxis;
     if (axis < 0) return;
     const that = this;
-    wx.createSelectorQuery().select(chr(39)+chr(35)+chr(102)+chr(108)+chr(97)+chr(118)+chr(111)+chr(114)+chr(87)+chr(104)+chr(101)+chr(101)+chr(108)+chr(39)).boundingClientRect(function(rect) {
+    wx.createSelectorQuery().select('#flavorWheel').boundingClientRect(function(rect) {
       if (!rect) return;
       const scale = WHEEL.size / rect.width;
       const x = (touch.clientX - rect.left) * scale - WHEEL.center;
@@ -273,20 +279,23 @@ Page({
     this.setData({ selectedCategory: '', categorySearch: '', categorySuggestions: [] });
   },
 
-  chooseImage() {
-    wx.chooseMedia({ count: 1, mediaType: ['image'], success: (res) => { const path = res.tempFiles[0].tempFilePath; this.setData({ imagePath: path, fileList: [{ url: path }] }); } });
+  chooseImage(e) {
+    const file = e.detail && e.detail.file;
+    const path = file && (file.path || file.url);
+    if (path) this.setData({ imagePath: path, fileList: [{ url: path }] });
   },
   removeImage() { this.setData({ imagePath: '', fileList: [] }); },
 
   onIngredientSearch(e) {
     const q = e.detail.trim();
+    const requestId = ++ingredientRequest;
     this.setData({ ingredientSearch: q });
     if (!q) { this.setData({ ingredientSuggestions: [] }); return; }
-    const that = this;
-    api.searchIngredients(q, 50).then(function(result) {
-      that.setData({ ingredientSuggestions: result.items || [] });
-    }).catch(function() {
-      that.setData({ ingredientSuggestions: [] });
+    const limit = this.data.settings ? this.data.settings.pagination.ingredient_page_size : 50;
+    api.searchIngredients(q, limit).then(result => {
+      if (requestId === ingredientRequest) this.setData({ ingredientSuggestions: result.items || [] });
+    }).catch(() => {
+      if (requestId === ingredientRequest) this.setData({ ingredientSuggestions: [] });
     });
   },
 
@@ -320,14 +329,6 @@ Page({
     } catch (err) {
       wx.showToast({ title: '操作失败', icon: 'none' });
     }
-  },
-
-  // 输入难吃理由并确认
-  onBadlyConfirm(e) {
-    const id = e.currentTarget.dataset.id;
-    const input = e.currentTarget.dataset.input;
-    if (!input) return;
-    api.updateFoodPreference(id, this.data.settings.preferences.bad.value, input).then(() => this.loadRecords(true));
   },
 
   async submit() {
@@ -371,7 +372,7 @@ Page({
       const flavorLevels = {};
       config.flavors.forEach(f => flavorLevels[f] = config.flavor_scale.default_level);
       const good = config.preferences.good;
-      this.setData({ dishName: '', brandName: '', price: '', ingredients: [], selectedCategory: '', imagePath: '', flavorLevels, preference: good.value, preferenceFace: good.face, preferenceLabel: good.label, reasonField: 'none', badlyReason: '', goodReason: '' }, () => this.drawWheel());
+      this.setData({ dishName: '', brandName: '', price: '', ingredients: [], selectedCategory: '', imagePath: '', fileList: [], flavorLevels, preference: good.value, preferenceFace: good.face, preferenceLabel: good.label, reasonField: 'none', badlyReason: '', goodReason: '' }, () => this.drawWheel());
       this.loadRecords(true);
     } catch (e) {
       wx.hideLoading();
