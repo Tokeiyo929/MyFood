@@ -1,5 +1,7 @@
 const api = require('../../utils/api');
 
+const MAX_FOODS = 200;
+
 Page({
   data: {
     groups: [],
@@ -16,16 +18,10 @@ Page({
     try {
       const result = await api.getCategories();
       const items = result.items || [];
-      // 拉取食物数据用于给类别找图片
-      let foods = [];
-      try {
-        const foodRes = await api.getFoods(1, 200, '');
-        foods = foodRes.items || [];
-      } catch (e) { foods = []; }
+      const foods = await api.getFoods(1, MAX_FOODS, '').then(r => r.items).catch(() => []);
       const map = {};
       items.forEach(item => {
         const parent = item.parentcategories || '未分类';
-        // 找该类别下第一个有图的食品
         const food = foods.find(f => (f.categories || []).includes(item.name) && f.image_path);
         (map[parent] = map[parent] || []).push({
           id: item.id,
@@ -35,7 +31,7 @@ Page({
       });
       const groups = Object.keys(map).map(parent => ({ parent, items: map[parent] }));
       this.setData({ groups });
-    } catch (e) {} finally { this.setData({ loading: false }); }
+    } finally { this.setData({ loading: false }); }
   },
 
   toggleGroup(e) {
@@ -47,8 +43,8 @@ Page({
     const name = e.currentTarget.dataset.name;
     const parent = e.currentTarget.dataset.parent;
     try {
-      const result = await api.getFoodsByCategory(parent, 200);
-      const foods = (result.items || []).filter(f => (f.categories || []).includes(name) || (f.categories || []).includes(parent));
+      const result = await api.getFoodsByCategory(parent, MAX_FOODS);
+      const foods = result.items.filter(f => (f.categories || []).includes(name) || (f.categories || []).includes(parent));
       this.setData({ modal: { name, foods } });
     } catch (err) {
       this.setData({ modal: { name, foods: [] } });

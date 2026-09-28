@@ -1,11 +1,12 @@
 const api = require('../../utils/api');
 
+const PAGE_SIZE = 200;
+
 Page({
   data: {
     newName: '',
     search: '',
     ingredients: [],
-    page: 1,
     total: 0,
     loading: false,
   },
@@ -17,7 +18,7 @@ Page({
   async loadIngredients(reset) {
     this.setData({ loading: true });
     try {
-      const result = await api.searchIngredients(this.data.search, 200);
+      const result = await api.searchIngredients(this.data.search, PAGE_SIZE);
       this.setData({ ingredients: result.items, total: result.total });
     } catch (e) {
       wx.showToast({ title: '加载失败', icon: 'none' });
