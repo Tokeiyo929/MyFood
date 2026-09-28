@@ -1,4 +1,4 @@
-﻿{
+{
   "navigationBarTitleText": "原料",
   "usingComponents": {
     "van-field": "@vant/weapp/field/index",

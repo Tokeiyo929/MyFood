@@ -1,4 +1,4 @@
-﻿{
+{
   "navigationBarTitleText": "记录",
   "usingComponents": {
     "van-button": "@vant/weapp/button/index",
