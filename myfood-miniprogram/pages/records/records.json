@@ -1,3 +1,16 @@
 {
-  "navigationBarTitleText": "记录"
+  "navigationBarTitleText": "记录",
+  "usingComponents": {
+    "van-button": "@vant/weapp/dist/button/index",
+    "van-field": "@vant/weapp/dist/field/index",
+    "van-slider": "@vant/weapp/dist/slider/index",
+    "van-search": "@vant/weapp/dist/search/index",
+    "van-tag": "@vant/weapp/dist/tag/index",
+    "van-uploader": "@vant/weapp/dist/uploader/index",
+    "van-empty": "@vant/weapp/dist/empty/index",
+    "van-cell": "@vant/weapp/dist/cell/index",
+    "van-cell-group": "@vant/weapp/dist/cell-group/index",
+    "van-icon": "@vant/weapp/dist/icon/index",
+    "van-loading": "@vant/weapp/dist/loading/index"
+  }
 }

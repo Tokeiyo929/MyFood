@@ -219,7 +219,7 @@ Page({
 
   // ---------- 偏好滑块 ----------
   onPreferenceChange(e) {
-    const level = Number(e.detail.value);
+    const level = Number(e.detail);
     const prefs = this.data.preferenceOptions;
     const pref = prefs.reduce((best, p) => Math.abs(p.level - level) < Math.abs(best.level - level) ? p : best, prefs[0]);
     const bad = this.data.settings.preferences.bad.value;

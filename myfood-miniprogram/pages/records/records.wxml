@@ -1,144 +1,58 @@
-<wxs module="fmt">
-function levelText(level) {
-  if (level < 25) return "不";
-  if (level < 50) return "微";
-  if (level < 75) return "";
-  return "太";
-}
-module.exports = {
-  levelText: levelText,
-  flavorText: function(flavor) {
-    return levelText(flavor.level || 50) + flavor.name;
-  },
-  ingredientLabel: function(item) {
-    return item.amount ? item.name + "(" + item.amount + "%)" : item.name;
-  }
-}
-</wxs>
-
 <view class="page">
-  <!-- 提交表单 -->
   <view class="card">
-    <view class="field">
-      <text class="label">图片</text>
-      <view class="image-picker" bindtap="chooseImage">
-        <image wx:if="{{imagePath}}" src="{{imagePath}}" mode="aspectFill" class="preview-img" />
-        <text wx:else class="upload-hint">点击添加图片</text>
-      </view>
-      <text wx:if="{{imagePath}}" class="remove-img" bindtap="removeImage">移除图片</text>
+    <van-field label="产品名称" value="{{dishName}}" bindinput="onDishName" placeholder="产品名称" />
+    <van-field label="生产者" value="{{brandName}}" bindinput="onBrandName" placeholder="生产者" />
+    <van-field label="价格" value="{{price}}" type="number" bindinput="onPrice" placeholder="价格" />
+    <van-field label="产品类别" value="{{categorySearch}}" bindinput="onCategorySearch" placeholder="搜索产品类别" />
+    <view class="suggestions" wx:if="{{categorySuggestions.length}}">
+      <van-tag wx:for="{{categorySuggestions}}" wx:key="*this" data-name="{{item}}" bindtap="pickCategory" style="margin:4px">{{item}}</van-tag>
     </view>
-
-    <view class="field">
-      <text class="label">产品名称</text>
-      <input value="{{dishName}}" bindinput="onDishName" placeholder="产品名称" />
+    <view class="chips" wx:if="{{selectedCategory}}">
+      <van-tag closeable type="warning" bindtap="removeCategory">{{selectedCategory}}</van-tag>
     </view>
-    <view class="field">
-      <text class="label">生产者</text>
-      <input value="{{brandName}}" bindinput="onBrandName" placeholder="生产者" />
-    </view>
-    <view class="field">
-      <text class="label">价格</text>
-      <input value="{{price}}" bindinput="onPrice" type="digit" placeholder="价格" />
-    </view>
-
-    <view class="field">
-      <text class="label">产品类别</text>
-      <view class="entry-row">
-        <input value="{{categorySearch}}" bindinput="onCategorySearch" placeholder="搜索产品类别" />
-      </view>
-      <view class="suggestions" wx:if="{{categorySuggestions.length}}">
-        <view class="suggest" wx:for="{{categorySuggestions}}" wx:key="*this" data-name="{{item}}" bindtap="pickCategory">{{item}}</view>
-      </view>
-      <view class="chips" wx:if="{{selectedCategory}}">
-        <view class="chip"><text>{{selectedCategory}}</text><text class="chip-x" bindtap="removeCategory">×</text></view>
-      </view>
-    </view>
-
-    <!-- 味道雷达图 -->
     <view class="field" wx:if="{{flavors.length}}">
       <text class="label">味道</text>
       <view class="wheel-wrap">
-        <canvas canvas-id="flavorWheel" id="flavorWheel" class="flavor-canvas"
-          catchtouchstart="onWheelTouch" catchtouchmove="onWheelMove" />
-        <view class="flavor-reset" bindtap="resetFlavors">↻ 重置</view>
+        <canvas canvas-id="flavorWheel" id="flavorWheel" class="flavor-canvas" catchtouchstart="onWheelTouch" catchtouchmove="onWheelMove" />
+        <van-button size="mini" plain type="primary" bindtap="resetFlavors">重置</van-button>
       </view>
     </view>
-
-    <!-- 偏好滑块 -->
     <view class="field" wx:if="{{preferenceOptions.length}}">
       <text class="label">偏好</text>
       <view class="preference-panel">
         <text class="pref-face">{{preferenceFace}}</text>
-        <slider min="{{preferenceOptions[0].level}}" max="{{preferenceOptions[preferenceOptions.length-1].level}}" value="{{prefLevel}}" bindchange="onPreferenceChange" style="flex:1" />
+        <van-slider value="{{prefLevel}}" min="{{preferenceOptions[0].level}}" max="{{preferenceOptions[preferenceOptions.length-1].level}}" bind:change="onPreferenceChange" style="flex:1" />
         <text class="pref-label">{{preferenceLabel}}</text>
       </view>
     </view>
-
-    <!-- 动态理由 -->
-    <view class="field" wx:if="{{reasonField === 'bad'}}">
-      <text class="label">难吃理由 *</text>
-      <input value="{{badlyReason}}" bindinput="onBadlyReason" placeholder="请输入难吃理由" />
+    <van-field wx:if="{{reasonField === 'bad'}}" label="难吃理由" value="{{badlyReason}}" bindinput="onBadlyReason" placeholder="请输入难吃理由" />
+    <van-field wx:if="{{reasonField === 'good'}}" label="推荐理由" value="{{goodReason}}" bindinput="onGoodReason" placeholder="请输入推荐理由" />
+    <van-field label="原料" value="{{ingredientSearch}}" bindinput="onIngredientSearch" placeholder="搜索原料" />
+    <van-field label="含量%" value="{{ingredientAmount}}" type="number" bindinput="onIngredientAmount" placeholder="含量%" />
+    <view class="suggestions" wx:if="{{ingredientSuggestions.length}}">
+      <van-tag wx:for="{{ingredientSuggestions}}" wx:key="index" data-idx="{{index}}" bindtap="pickIngredient" style="margin:4px">{{item.name}}</van-tag>
     </view>
-    <view class="field" wx:if="{{reasonField === 'good'}}">
-      <text class="label">推荐理由 *</text>
-      <input value="{{goodReason}}" bindinput="onGoodReason" placeholder="请输入推荐理由" />
+    <view class="chips">
+      <van-tag closeable wx:for="{{ingredients}}" wx:key="index" data-idx="{{index}}" bindtap="removeIngredient" style="margin:4px">{{item.name}}</van-tag>
     </view>
-
-    <view class="field">
-      <text class="label">原料 *</text>
-      <view class="entry-row">
-        <input value="{{ingredientSearch}}" bindinput="onIngredientSearch" placeholder="搜索原料" />
-        <input value="{{ingredientAmount}}" bindinput="onIngredientAmount" placeholder="含量%" />
-      </view>
-      <view class="suggestions" wx:if="{{ingredientSuggestions.length}}">
-        <view class="suggest" wx:for="{{ingredientSuggestions}}" wx:key="index" data-idx="{{index}}" bindtap="pickIngredient">{{item.name}}</view>
-      </view>
-      <view class="chips">
-        <view class="chip" wx:for="{{ingredients}}" wx:key="index">
-          <text>{{item.name}}</text>
-          <text wx:if="{{item.amount}}">({{item.amount}}%)</text>
-          <text class="chip-x" data-idx="{{index}}" bindtap="removeIngredient">×</text>
-        </view>
-      </view>
-    </view>
-
-    <button class="save-btn" bindtap="submit">保存记录</button>
+    <view style="margin-top:16px"><van-button type="primary" block bindtap="submit">保存记录</van-button></view>
   </view>
 
-  <view class="search-row">
-    <input value="{{recordSearch}}" bindinput="onRecordSearch" placeholder="搜索名称、品牌或原料" />
-  </view>
   <view class="records">
-    <view class="record {{item.prefClass}}" wx:for="{{records}}" wx:key="id" data-id="{{item.id}}">
-      <view class="record-main" bindtap="toggleDetail" data-id="{{item.id}}">
-        <image wx:if="{{item.image_path}}" src="{{item.image_path}}" class="record-img" mode="aspectFill" />
-        <view class="record-info">
-          <text class="record-name">{{item.name}}</text>
-          <text class="record-brand" wx:if="{{item.brand_name}}">{{item.brand_name}}</text>
-          <view class="record-tags" wx:if="{{item.flavorLabels && item.flavorLabels.length}}">
-            <text class="record-tag" wx:for="{{item.flavorLabels}}" wx:key="*this">{{item}}</text>
-          </view>
-        </view>
-      </view>
-      <!-- 复购/理由按钮区 -->
-      <view class="repurchase-actions" wx:if="{{expandedId === item.id && item.pickable}}">
-        <button class="repurchase-choice" data-id="{{item.id}}" data-value="{{prefGood}}" bindtap="repurchase">偏好吃</button>
-        <button class="repurchase-choice bad" data-id="{{item.id}}" data-value="{{prefBad}}" bindtap="repurchase">偏难吃</button>
-        <text class="repurchase-count">已复购 {{item.repurchase_count}} 次</text>
-      </view>
-      <view class="reason-display" wx:elif="{{expandedId === item.id && item.preference === prefBad}}">难吃理由：{{item.reason}}</view>
-      <view class="reason-display good" wx:elif="{{expandedId === item.id && item.preference === prefExcellent}}">推荐理由：{{item.reason}}</view>
-
-      <!-- 展开详情 -->
-      <view class="detail" wx:if="{{expandedId === item.id}}">
-        <text class="detail-line" wx:if="{{item.price}}">价格：{{item.price}}</text>
-        <text class="detail-line" wx:if="{{item.categories.length}}">类别：{{item.categories}}</text>
-        <view class="detail-block" wx:if="{{item.ingredients.length}}">
-          <text class="detail-head">材料：</text>
-          <text class="detail-tag" wx:for="{{item.ingredientLabels}}" wx:key="*this">{{item}}</text>
+    <view class="record-inner" wx:for="{{records}}" wx:key="id">
+      <van-cell title="{{item.name}}" value="{{item.brand_name}}" is-link bindtap="toggleDetail" data-id="{{item.id}}" />
+      <view wx:if="{{expandedId === item.id}}" class="detail">
+        <view wx:if="{{item.reason}}">理由：{{item.reason}}</view>
+        <view wx:if="{{item.price}}">价格：{{item.price}}</view>
+        <view wx:if="{{item.categories.length}}">类别：{{item.categories}}</view>
+        <view wx:if="{{item.pickable}}" class="repurchase-actions">
+          <van-button size="mini" type="primary" data-id="{{item.id}}" data-value="{{prefGood}}" bindtap="repurchase">偏好吃</van-button>
+          <van-button size="mini" type="danger" data-id="{{item.id}}" data-value="{{prefBad}}" bindtap="repurchase">偏难吃</van-button>
         </view>
       </view>
     </view>
+    <view wx:if="{{!records.length && !loading}}"><van-empty description="暂无记录" /></view>
+    <view wx:if="{{loading}}"><van-loading /></view>
   </view>
   <view wx:if="{{hasMore && records.length}}" class="loading-hint">上拉加载更多</view>
 </view>

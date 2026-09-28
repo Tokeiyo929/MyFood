@@ -8,3 +8,6 @@ _restore_tmp/
 
 # wechat miniprogram private
 myfood-miniprogram/project.private.config.json
+
+myfood-miniprogram/node_modules/
+myfood-miniprogram/package-lock.json
