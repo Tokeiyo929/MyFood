@@ -185,30 +185,49 @@ Page({
   onWheelTouch(e) {
     const touch = e.touches[0] || e.changedTouches[0];
     if (!touch) return;
-    // 获取 canvas 相对点击的坐标
-    wx.createSelectorQuery().select('#flavorWheel').boundingClientRect(rect => {
+    const that = this;
+    wx.createSelectorQuery().select(chr(39)+chr(35)+chr(102)+chr(108)+chr(97)+chr(118)+chr(111)+chr(114)+chr(87)+chr(104)+chr(101)+chr(101)+chr(108)+chr(39)).boundingClientRect(function(rect) {
       if (!rect) return;
       const scale = WHEEL.size / rect.width;
       const x = (touch.clientX - rect.left) * scale - WHEEL.center;
       const y = (touch.clientY - rect.top) * scale - WHEEL.center;
-      const flavors = this.data.flavors;
-      const s = this.data.settings.flavor_scale;
-      // 找到最近的一条轴，更新该轴味道
+      const flavors = that.data.flavors;
+      const sc = that.data.settings.flavor_scale;
       let best = 0, bestDot = -Infinity;
-      flavors.forEach((v, i) => {
+      flavors.forEach(function(v, i) {
         const a = -Math.PI / 2 + i * Math.PI * 2 / flavors.length;
         const dot = x * Math.cos(a) + y * Math.sin(a);
         if (dot > bestDot) { bestDot = dot; best = i; }
       });
-      const a = -Math.PI / 2 + best * Math.PI * 2 / flavors.length;
-      const level = Math.max(s.min_level, Math.min(s.max_level, Math.round((x * Math.cos(a) + y * Math.sin(a)) / WHEEL.radius * s.max_level)));
-      const flavorLevels = this.data.flavorLevels;
-      flavorLevels[flavors[best]] = level;
-      this.setData({ flavorLevels }, () => this.drawWheel());
+      that.setData({ draggingAxis: best });
+      that.updateWheelAxis(best, x, y);
     }).exec();
   },
 
-  onWheelMove(e) { this.onWheelTouch(e); },
+  onWheelMove(e) {
+    const touch = e.touches[0] || e.changedTouches[0];
+    if (!touch) return;
+    const axis = this.data.draggingAxis;
+    if (axis < 0) return;
+    const that = this;
+    wx.createSelectorQuery().select(chr(39)+chr(35)+chr(102)+chr(108)+chr(97)+chr(118)+chr(111)+chr(114)+chr(87)+chr(104)+chr(101)+chr(101)+chr(108)+chr(39)).boundingClientRect(function(rect) {
+      if (!rect) return;
+      const scale = WHEEL.size / rect.width;
+      const x = (touch.clientX - rect.left) * scale - WHEEL.center;
+      const y = (touch.clientY - rect.top) * scale - WHEEL.center;
+      that.updateWheelAxis(axis, x, y);
+    }).exec();
+  },
+
+  updateWheelAxis(axis, x, y) {
+    const flavors = this.data.flavors;
+    const sc = this.data.settings.flavor_scale;
+    const a = -Math.PI / 2 + axis * Math.PI * 2 / flavors.length;
+    const level = Math.max(sc.min_level, Math.min(sc.max_level, Math.round((x * Math.cos(a) + y * Math.sin(a)) / WHEEL.radius * sc.max_level)));
+    const flavorLevels = this.data.flavorLevels;
+    flavorLevels[flavors[axis]] = level;
+    this.setData({ flavorLevels }, () => this.drawWheel());
+  },
 
   resetFlavors() {
     const flavorLevels = {};

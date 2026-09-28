@@ -10,11 +10,19 @@
 .pref-face { font-size: 28px; }
 .pref-label { font-size: 14px; min-width: 48px; }
 .records { margin-top: 8px; }
-.record-inner { margin-bottom: 8px; background: #fff; }
-.cell-label { display: flex; flex-wrap: wrap; margin-top: 4px; }
-.detail { padding: 10px 16px; background: #fff; }
+.record { background: #fff; border-radius: 12px; margin-bottom: 10px; overflow: hidden; border-left: 5px solid #66508f; }
+.record.preference-excellent { border-left-color: #2c9e5f; }
+.record.preference-bad { border-left-color: #c0504d; }
+.record.preference-good { border-left-color: #66508f; }
+.record-main { display: flex; align-items: center; gap: 12px; padding: 12px; }
+.record-img { width: 64px; height: 64px; border-radius: 10px; flex-shrink: 0; }
+.record-info { flex: 1; }
+.record-name { font-weight: 700; font-size: 15px; }
+.record-brand { color: #888; font-size: 12px; display: block; margin-top: 2px; }
+.record-tags { display: flex; flex-wrap: wrap; margin-top: 4px; }
+.repurchase-count { color: #999; font-size: 12px; display: block; margin-top: 4px; }
+.detail { padding: 10px 16px; background: #fff; border-top: 1px solid #f0f0f0; }
 .detail-block { display: flex; flex-wrap: wrap; align-items: center; margin-top: 4px; }
 .detail-head { font-weight: 600; font-size: 13px; margin-right: 4px; }
 .repurchase-actions { display: flex; gap: 8px; margin-top: 8px; }
-.repurchase-count { color: #999; font-size: 12px; display: block; margin-top: 6px; }
 .loading-hint { text-align: center; color: #999; padding: 14px 0; }
