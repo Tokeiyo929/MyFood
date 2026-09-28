@@ -41,6 +41,7 @@ Page({
     prefBad: '',
     prefExcellent: '',
     prefLevel: 50,
+    prefStep: 50,
   },
 
   onLoad() {

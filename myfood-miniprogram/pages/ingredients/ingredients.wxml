@@ -1,11 +1,12 @@
 <view class="page">
-  <view class="add-row">
-    <van-field value="{{newName}}" bindinput="onNewName" placeholder="添加原料" />
-    <view style="margin:8px"><van-button type="primary" size="small" bindtap="addIngredient">添加</van-button></view>
+  <view class="add-search">
+    <van-field value="{{search}}" bindinput="onSearch" placeholder="搜索并添加原料" />
   </view>
-  <van-search value="{{search}}" bind:change="onSearch" placeholder="搜索原料" />
-  <view class="grid">
-    <view class="grid-item" wx:for="{{ingredients}}" wx:key="id">{{item.name}}</view>
+  <view class="suggestions" wx:if="{{suggestions.length}}">
+    <van-tag wx:for="{{suggestions}}" wx:key="id" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="pickIngredient" style="margin:4px">{{item.name}}</van-tag>
+  </view>
+  <view class="list">
+    <van-cell wx:for="{{ingredients}}" wx:key="id" title="{{item.name}}" />
   </view>
   <view wx:if="{{!ingredients.length && !loading}}" class="empty"><van-empty description="暂无原料" /></view>
 </view>
