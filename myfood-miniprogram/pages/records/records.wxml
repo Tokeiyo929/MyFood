@@ -1,0 +1,47 @@
+<view class="page">
+  <!-- 提交表单 -->
+  <view class="card">
+    <view class="field">
+      <text class="label">产品名称</text>
+      <input value="{{dishName}}" bindinput="onDishName" placeholder="产品名称" />
+    </view>
+    <view class="field">
+      <text class="label">生产者</text>
+      <input value="{{brandName}}" bindinput="onBrandName" placeholder="生产者" />
+    </view>
+    <view class="field">
+      <text class="label">价格</text>
+      <input value="{{price}}" bindinput="onPrice" type="digit" placeholder="价格" />
+    </view>
+    <view class="field">
+      <text class="label">原料 *</text>
+      <view class="entry-row">
+        <input value="{{ingredientSearch}}" bindinput="onIngredientSearch" placeholder="搜索原料" />
+        <input value="{{ingredientAmount}}" bindinput="onIngredientAmount" placeholder="含量%" />
+      </view>
+      <view class="suggestions" wx:if="{{ingredientSuggestions.length}}">
+        <view class="suggest" wx:for="{{ingredientSuggestions}}" wx:key="id" data-idx="{{index}}" bindtap="pickIngredient">{{item.name}}</view>
+      </view>
+      <view class="chips">
+        <view class="chip" wx:for="{{ingredients}}" wx:key="index">
+          <text>{{item.name}}</text>
+          <text wx:if="{{item.amount}}">({{item.amount}}%)</text>
+          <text class="chip-x" data-idx="{{index}}" bindtap="removeIngredient">×</text>
+        </view>
+      </view>
+    </view>
+    <button class="save-btn" bindtap="submit">保存记录</button>
+  </view>
+
+  <!-- 记录列表 -->
+  <view class="search-row">
+    <input value="{{recordSearch}}" bindinput="onRecordSearch" placeholder="搜索名称、品牌或原料" />
+  </view>
+  <view class="records">
+    <view class="record" wx:for="{{records}}" wx:key="id">
+      <text class="record-name">{{item.name}}</text>
+      <text class="record-brand" wx:if="{{item.brand_name}}">{{item.brand_name}}</text>
+    </view>
+  </view>
+  <view class="load-more" wx:if="{{hasMore && records.length}}" bindtap="loadMore">加载更多</view>
+</view>

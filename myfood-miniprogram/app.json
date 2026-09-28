@@ -1,0 +1,29 @@
+{
+  "pages": [
+    "pages/records/records",
+    "pages/index/index",
+    "pages/ingredients/ingredients"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#66508f",
+    "navigationBarTitleText": "MyFood",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#756e7d",
+    "selectedColor": "#66508f",
+    "list": [
+      {
+        "pagePath": "pages/records/records",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/ingredients/ingredients",
+        "text": "原料"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,10 @@
+<view class="page">
+  <view class="add-row">
+    <input value="{{newName}}" bindinput="onNewName" placeholder="添加原料" />
+    <button size="mini" bindtap="addIngredient">添加</button>
+  </view>
+  <input class="search" value="{{search}}" bindinput="onSearch" placeholder="搜索原料" />
+  <view class="list">
+    <view class="item" wx:for="{{ingredients}}" wx:key="id">{{item.name}}</view>
+  </view>
+</view>
