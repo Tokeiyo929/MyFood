@@ -25,6 +25,7 @@ Page({
     page: 1,
     hasMore: true,
     loading: false,
+    imagePath: '',
   },
 
   onLoad() {
@@ -69,7 +70,7 @@ Page({
   onPrice(e) { this.setData({ price: e.detail.value }); },
   onIngredientAmount(e) { this.setData({ ingredientAmount: e.detail.value }); },
   onRecordSearch(e) { this.setData({ recordSearch: e.detail.value }); this.loadRecords(true); },
-  onCategory(e) { this.setData({ selectedCategory: e.detail.value }); },
+  onCategory(e) { this.setData({ selectedCategory: this.data.categories[e.detail.value].name }); },
   onPreference(e) { this.setData({ preference: this.data.preferenceOptions[e.detail.value].value }); },
   onFlavor(e) {
     const f = e.currentTarget.dataset.flavor;
@@ -77,6 +78,20 @@ Page({
     const flavorLevels = this.data.flavorLevels;
     flavorLevels[f] = level;
     this.setData({ flavorLevels });
+  },
+
+  chooseImage() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      success: (res) => {
+        this.setData({ imagePath: res.tempFiles[0].tempFilePath });
+      },
+    });
+  },
+
+  removeImage() {
+    this.setData({ imagePath: '' });
   },
 
   async onIngredientSearch(e) {
@@ -118,27 +133,35 @@ Page({
       wx.showToast({ title: '请添加原料', icon: 'none' });
       return;
     }
-    const flavors = this.data.flavors.filter(f => (this.data.flavorLevels[f] || 50) > 50)
-      .map(f => ({ name: f, level: this.data.flavorLevels[f] }));
-    const record = {
-      name: this.data.dishName,
-      brand_name: this.data.brandName,
-      price: this.data.price === '' ? null : Number(this.data.price),
-      categories: this.data.selectedCategory ? [this.data.selectedCategory] : [],
-      ingredients: this.data.ingredients,
-      flavors,
-      preference: this.data.preference,
-      reason: '',
-      image_path: '',
-      image_metadata: {},
-      client_key: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10),
-    };
     wx.showLoading({ title: '保存中' });
+    let imagePath = '';
+    let imageMetadata = {};
     try {
+      // 上传图片
+      if (this.data.imagePath) {
+        const upload = await api.uploadImage(this.data.imagePath);
+        imagePath = upload.path;
+        imageMetadata = upload.metadata || {};
+      }
+      const flavors = this.data.flavors.filter(f => (this.data.flavorLevels[f] || 50) > 50)
+        .map(f => ({ name: f, level: this.data.flavorLevels[f] }));
+      const record = {
+        name: this.data.dishName,
+        brand_name: this.data.brandName,
+        price: this.data.price === '' ? null : Number(this.data.price),
+        categories: this.data.selectedCategory ? [this.data.selectedCategory] : [],
+        ingredients: this.data.ingredients,
+        flavors,
+        preference: this.data.preference,
+        reason: '',
+        image_path: imagePath,
+        image_metadata: imageMetadata,
+        client_key: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10),
+      };
       await api.submitFood(record);
       wx.hideLoading();
       wx.showToast({ title: '保存成功', icon: 'success' });
-      this.setData({ dishName: '', brandName: '', price: '', ingredients: [], selectedCategory: '' });
+      this.setData({ dishName: '', brandName: '', price: '', ingredients: [], selectedCategory: '', imagePath: '' });
       this.loadRecords(true);
     } catch (e) {
       wx.hideLoading();

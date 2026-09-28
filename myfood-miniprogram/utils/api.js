@@ -25,6 +25,29 @@ function request(path, method = "GET", data = null) {
   });
 }
 
+// 图片上传（wx.uploadFile 到 /api/upload）
+function uploadImage(filePath) {
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: BASE_URL + "/api/upload",
+      filePath,
+      name: "image",
+      formData: {},
+      timeout: 30000,
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data);
+          if (res.statusCode === 200) resolve(data);
+          else reject(new Error(data.error || "上传失败"));
+        } catch (e) {
+          reject(new Error("上传失败：无法解析响应"));
+        }
+      },
+      fail: (err) => reject(new Error(err.errMsg || "上传失败")),
+    });
+  });
+}
+
 // ---- 配置 ----
 function getConfig() {
   return request("/api/config");
@@ -70,4 +93,5 @@ module.exports = {
   searchIngredients,
   addIngredient,
   getCategories,
+  uploadImage,
 };
