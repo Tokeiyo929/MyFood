@@ -50,7 +50,7 @@ def db():
     conn.autocommit = True
     if not schema_ready:
         with conn.cursor() as cursor:
-            cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, brand_name VARCHAR(255) NOT NULL DEFAULT '', price NUMERIC(10, 2), categories TEXT NOT NULL DEFAULT '[]', ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, reason VARCHAR(500) NOT NULL DEFAULT '', repurchase_count INTEGER NOT NULL DEFAULT 0, image_path VARCHAR(500) NOT NULL DEFAULT '', image_metadata TEXT NOT NULL DEFAULT '{}')")
+            cursor.execute("CREATE TABLE IF NOT EXISTS foods (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, brand_name VARCHAR(255) NOT NULL DEFAULT '', price NUMERIC(10, 2), categories TEXT NOT NULL DEFAULT '[]', ingredients TEXT NOT NULL, flavors TEXT NOT NULL, preference VARCHAR(32) NOT NULL, reason VARCHAR(500) NOT NULL DEFAULT '', repurchase_count INTEGER NOT NULL DEFAULT 0, image_path VARCHAR(500) NOT NULL DEFAULT '', image_metadata TEXT NOT NULL DEFAULT '{}', client_key VARCHAR(64) NOT NULL DEFAULT '')")
             cursor.execute("CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL, parentcategories VARCHAR(255) NOT NULL DEFAULT '')")
             cursor.execute("CREATE TABLE IF NOT EXISTS ingredients (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE NOT NULL)")
         schema_ready = True
@@ -216,22 +216,32 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         item = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        # 幂等防重复：如果 client_key 已入库，直接返回已有 id，不重复插入
+        client_key = item.get('client_key', '') or ''
         conn = db()
         with conn.cursor() as cursor:
+            if client_key:
+                cursor.execute('SELECT id FROM foods WHERE client_key = %s', (client_key,))
+                existing = cursor.fetchone()
+                if existing:
+                    conn.close()
+                    self.send_json({'id': existing['id']})
+                    return
             cursor.execute(
-                'INSERT INTO foods (name, brand_name, price, categories, ingredients, flavors, preference, reason, image_path, image_metadata) '
-                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
+                'INSERT INTO foods (name, brand_name, price, categories, ingredients, flavors, preference, reason, image_path, image_metadata, client_key) '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id',
                 (
-                    item['name'],
-                    item['brand_name'],
-                    item['price'],
-                    json.dumps(item['categories'], ensure_ascii=False),
-                    json.dumps(item['ingredients'], ensure_ascii=False),
-                    json.dumps(item['flavors'], ensure_ascii=False),
-                    item['preference'],
-                    item['reason'],
-                    item['image_path'],
-                    json.dumps(item['image_metadata'], ensure_ascii=False),
+                    item.get('name', ''),
+                    item.get('brand_name', ''),
+                    item.get('price'),
+                    json.dumps(item.get('categories', []), ensure_ascii=False),
+                    json.dumps(item.get('ingredients', []), ensure_ascii=False),
+                    json.dumps(item.get('flavors', []), ensure_ascii=False),
+                    item.get('preference', ''),
+                    item.get('reason', ''),
+                    item.get('image_path', ''),
+                    json.dumps(item.get('image_metadata', {}), ensure_ascii=False),
+                    client_key,
                 ),
             )
             new_id = cursor.fetchone()['id']

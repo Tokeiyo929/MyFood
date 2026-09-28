@@ -431,13 +431,17 @@ async function compressImage(file) {
     return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', imageSettings.quality));
 }
 
+let foodSubmitLock = false;
 $('#foodForm').addEventListener('submit', async event => {
     event.preventDefault();
+    if (foodSubmitLock) return;  // 防止重复提交
     if (!ingredients.length) {
         $('#formError').textContent = '没有添加原料';
         $('#ingredientInput').scrollIntoView({behavior: 'smooth', block: 'center'});
         return;
     }
+    foodSubmitLock = true;
+    const clientKey = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
     const saveButton = $('.save-fixed');
     saveButton.disabled = true;
     saveButton.textContent = '保存中';
@@ -466,6 +470,7 @@ $('#foodForm').addEventListener('submit', async event => {
             reason: currentPreference === settings.preferences.bad.value ? $('#dislikeReason').value.trim() : $('#goodReason').value.trim(),
             image_path: imagePath,
             image_metadata: imageMetadata,
+            client_key: clientKey,
         };
         const response = await fetch('/api/foods', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(record)});
         if (!response.ok) throw new Error('保存请求失败');
@@ -486,6 +491,7 @@ $('#foodForm').addEventListener('submit', async event => {
     } catch (error) {
         $('#formError').textContent = `保存失败：${error.message}`;
     } finally {
+        foodSubmitLock = false;
         saveButton.disabled = false;
         saveButton.textContent = '保存记录';
     }
