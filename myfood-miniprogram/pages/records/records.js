@@ -108,7 +108,7 @@ Page({
       let records = reset ? result.items : this.data.records.concat(result.items);
       const bad = this.data.prefBad, good = this.data.prefGood, excellent = this.data.prefExcellent;
       const scale = this.data.settings ? this.data.settings.flavor_scale : {default_level:50, low_threshold:25, mid_threshold:50, high_threshold:75};
-      const flavorLabel = (name, level) => { const lv = level || 50; if (lv < scale.low_threshold) return "不"+name; if (lv < scale.mid_threshold) return "微"+name; if (lv < scale.high_threshold) return name; return "太"+name; };
+      const flavorLabel = (name, level) => { const lv = level || scale.default_level; if (lv < scale.low_threshold) return "不"+name; if (lv < scale.mid_threshold) return "微"+name; if (lv < scale.high_threshold) return name; return "太"+name; };
       records = records.map(record => ({
         ...record,
         prefClass: record.preference === excellent ? 'preference-excellent' : record.preference === bad ? 'preference-bad' : 'preference-good',

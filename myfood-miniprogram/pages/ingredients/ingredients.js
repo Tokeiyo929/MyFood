@@ -28,13 +28,12 @@ Page({
     this.setData({ search: q });
     if (!q) { this.setData({ suggestions: [] }); return; }
     const that = this;
-    api.searchIngredients(q, 50).then(result => {
+    api.searchIngredients(q, PAGE_SIZE).then(result => {
       that.setData({ suggestions: result.items || [] });
     }).catch(() => that.setData({ suggestions: [] }));
   },
 
   pickIngredient(e) {
-    const id = e.currentTarget.dataset.id;
     const name = e.currentTarget.dataset.name;
     if (!name) return;
     this.setData({ search: '', suggestions: [] });
