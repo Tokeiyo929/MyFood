@@ -1,11 +1,14 @@
 <view class="page">
   <view class="card">
-    <view class="field">
-      <text class="label">图片</text>
-      <van-uploader file-list="{{fileList}}" max-count="1" bind:after-read="chooseImage" bind:delete="removeImage" />
+    <view class="top-row">
+      <view class="img-box">
+        <van-uploader file-list="{{fileList}}" max-count="1" bind:after-read="chooseImage" bind:delete="removeImage" />
+      </view>
+      <view class="name-brand">
+        <van-field label="产品" value="{{dishName}}" bindinput="onDishName" placeholder="产品名称" />
+        <van-field label="生产者" value="{{brandName}}" bindinput="onBrandName" placeholder="生产者" />
+      </view>
     </view>
-    <van-field label="产品名称" value="{{dishName}}" bindinput="onDishName" placeholder="产品名称" />
-    <van-field label="生产者" value="{{brandName}}" bindinput="onBrandName" placeholder="生产者" />
     <van-field label="价格" value="{{price}}" type="number" bindinput="onPrice" placeholder="价格" />
     <van-field label="产品类别" value="{{categorySearch}}" bindinput="onCategorySearch" placeholder="搜索产品类别" />
     <view class="suggestions" wx:if="{{categorySuggestions.length}}">
@@ -14,26 +17,32 @@
     <view class="chips" wx:if="{{selectedCategory}}">
       <van-tag closeable type="warning" bindtap="removeCategory">{{selectedCategory}}</van-tag>
     </view>
-    <view class="field" wx:if="{{flavors.length}}">
-      <text class="label">味道</text>
-      <view class="wheel-wrap">
-        <canvas canvas-id="flavorWheel" id="flavorWheel" class="flavor-canvas" catchtouchstart="onWheelTouch" catchtouchmove="onWheelMove" />
-        <van-button size="mini" plain type="primary" bindtap="resetFlavors">重置</van-button>
+
+    <view class="flavor-pref-row" wx:if="{{flavors.length && preferenceOptions.length}}">
+      <view class="flavor-box">
+        <view class="wheel-wrap">
+          <view class="reset-btn" bindtap="resetFlavors">↻</view>
+          <canvas canvas-id="flavorWheel" id="flavorWheel" class="flavor-canvas" catchtouchstart="onWheelTouch" catchtouchmove="onWheelMove" />
+        </view>
       </view>
-    </view>
-    <view class="field" wx:if="{{preferenceOptions.length}}">
-      <text class="label">偏好</text>
-      <view class="preference-panel">
-        <text class="pref-face">{{preferenceFace}}</text>
-        <slider value="{{prefLevel}}" min="{{preferenceOptions[0].level}}" max="{{preferenceOptions[preferenceOptions.length-1].level}}" step="{{prefStep}}" bindchange="onPreferenceChange" activeColor="#66508f" style="flex:1" />
-        <text class="pref-label">{{preferenceLabel}}</text>
+      <view class="pref-box">
+        <text class="label">偏好</text>
+        <view class="preference-panel">
+          <text class="pref-face">{{preferenceFace}}</text>
+          <slider value="{{prefLevel}}" min="{{preferenceOptions[0].level}}" max="{{preferenceOptions[preferenceOptions.length-1].level}}" step="{{prefStep}}" bindchange="onPreferenceChange" activeColor="#66508f" style="flex:1" />
+          <text class="pref-label">{{preferenceLabel}}</text>
+        </view>
       </view>
     </view>
     <van-field wx:if="{{reasonField === 'bad'}}" label="难吃理由" value="{{badlyReason}}" bindinput="onBadlyReason" placeholder="请输入难吃理由" />
     <van-field wx:if="{{reasonField === 'good'}}" label="推荐理由" value="{{goodReason}}" bindinput="onGoodReason" placeholder="请输入推荐理由" />
-    <van-field label="原料" value="{{ingredientSearch}}" bindinput="onIngredientSearch" placeholder="搜索原料" />
-    <view class="entry-row">
-      <van-field label="含量%" value="{{ingredientAmount}}" type="number" bindinput="onIngredientAmount" placeholder="含量" />
+
+    <view class="ing-row">
+      <van-field label="原料" value="{{ingredientSearch}}" bindinput="onIngredientSearch" placeholder="搜索原料" style="flex:1" />
+      <van-field label="含量%" value="{{ingredientAmount}}" type="number" bindinput="onIngredientAmount" placeholder="含量" style="width:120px" />
+    </view>
+    <view class="suggestions" wx:if="{{ingredientSuggestions.length}}">
+      <van-tag wx:for="{{ingredientSuggestions}}" wx:key="index" data-idx="{{index}}" bindtap="pickIngredient" style="margin:4px">{{item.name}}</van-tag>
     </view>
     <view class="chips">
       <van-tag closeable wx:for="{{ingredients}}" wx:key="index" data-idx="{{index}}" bindtap="removeIngredient" style="margin:4px">{{item.name}}{{item.amount ? '(' + item.amount + '%)' : ''}}</van-tag>

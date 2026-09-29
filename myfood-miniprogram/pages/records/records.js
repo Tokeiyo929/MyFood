@@ -54,7 +54,7 @@ Page({
   },
 
   onShow() {
-    if (this.data.settings) {
+    if (this.data.settings && !this.data.records.length) {
       this.loadRecords(true);
       if (this.data.flavors.length) this.drawWheel();
     }

@@ -1,30 +1,36 @@
 .page { padding: 12px; padding-bottom: 20px; }
-.card { background: #fff; margin-bottom: 16px; padding: 4px 0; }
+.card { background: #fff; margin-bottom: 16px; padding: 4px 0 12px; }
+.top-row { display: flex; gap: 10px; padding: 4px 16px; }
+.img-box { flex: 0 0 90px; }
+.name-brand { flex: 1; }
 .suggestions { display: flex; flex-wrap: wrap; padding: 4px 16px; }
 .chips { display: flex; flex-wrap: wrap; margin: 4px 16px; }
-.field { padding: 4px 16px; }
+.flavor-pref-row { display: flex; align-items: center; padding: 4px 16px; }
+.flavor-box { flex: 0 0 150px; }
+.pref-box { flex: 1; padding-left: 8px; }
 .label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
-.wheel-wrap { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
-.flavor-canvas { width: 220px; height: 220px; }
-.preference-panel { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
-.pref-face { font-size: 28px; }
-.pref-label { font-size: 14px; min-width: 48px; }
+.wheel-wrap { position: relative; }
+.flavor-canvas { width: 150px; height: 150px; }
+.reset-btn { position: absolute; top: 0; left: 0; z-index: 5; color: #66508f; font-size: 20px; padding: 2px 6px; }
+.preference-panel { display: flex; align-items: center; gap: 8px; }
+.pref-face { font-size: 24px; }
+.pref-label { font-size: 13px; min-width: 44px; }
+.ing-row { display: flex; padding: 0 8px; }
 .records { margin-top: 8px; }
 .record { margin-bottom: 10px; }
 .record-card { background: #fff; border-radius: 12px; overflow: hidden; border-left: 4px solid #66508f; }
 .record-card.preference-excellent { border-left-color: #2c9e5f; }
 .record-card.preference-bad { border-left-color: #c0504d; }
 .record-card.preference-good { border-left-color: #66508f; }
-.record-main { padding: 12px; }
-.row2 { display: flex; gap: 12px; }
-.record-img { width: 72px; height: 72px; border-radius: 10px; flex-shrink: 0; }
+.record-main { display: flex; gap: 12px; padding: 12px; }
+.record-img { width: 80px; height: 80px; border-radius: 10px; flex-shrink: 0; }
 .record-info { flex: 1; }
 .line1 { display: flex; align-items: center; flex-wrap: wrap; }
 .record-name { font-weight: 700; font-size: 15px; }
 .record-brand { color: #888; font-size: 12px; }
 .line2 { display: flex; align-items: center; flex-wrap: wrap; margin-top: 6px; }
 .item-label { font-size: 12px; color: #555; margin-right: 4px; }
-.repurchase-count { color: #999; font-size: 11px; margin-left: 6px; }
-.detail { padding: 10px 14px; background: #fff; border-top: 1px solid #f0f0f0; }
+.repurchase-count { color: #999; font-size: 11px; margin-top: 4px; display: block; }
+.detail { padding: 10px 14px; background: #fff; border-top: 1px solid #f0f0f0; border-left: 4px solid #66508f; }
 .repurchase-actions { display: flex; gap: 8px; margin-top: 8px; }
 .loading-hint { text-align: center; color: #999; padding: 14px 0; }
