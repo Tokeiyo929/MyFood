@@ -28,9 +28,9 @@
       <view class="pref-box">
         <text class="label">偏好</text>
         <view class="preference-panel">
-          <text class="pref-face">{{preferenceFace}}</text>
-          <slider value="{{prefLevel}}" min="{{preferenceOptions[0].level}}" max="{{preferenceOptions[preferenceOptions.length-1].level}}" step="{{prefStep}}" bindchange="onPreferenceChange" activeColor="#66508f" style="flex:1" />
           <text class="pref-label">{{preferenceLabel}}</text>
+          <slider value="{{prefLevel}}" min="{{preferenceOptions[0].level}}" max="{{preferenceOptions[preferenceOptions.length-1].level}}" step="{{prefStep}}" bindchange="onPreferenceChange" activeColor="#66508f" vertical block-size="8" class="pref-slider" />
+          <text class="pref-face">{{preferenceFace}}</text>
         </view>
       </view>
     </view>
@@ -63,7 +63,7 @@
             </view>
             <view class="line2" wx:if="{{item.ingredientLabels && item.ingredientLabels.length}}">
               <text class="item-label">材料：</text>
-              <van-tag wx:for="{{item.ingredientLabels}}" wx:key="*this" type="warning" size="small" style="margin-right:4px">{{item}}</van-tag>
+              <van-tag wx:for="{{item.ingredientLabels}}" wx:key="*this" type="primary" plain size="small" style="margin-right:4px">{{item}}</van-tag>
             </view>
             <text class="repurchase-count" wx:if="{{item.repurchase_count}}">复购{{item.repurchase_count}}次</text>
           </view>
