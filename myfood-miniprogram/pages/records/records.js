@@ -37,6 +37,7 @@ Page({
     imagePath: '',
     fileList: [],
     expandedId: null,
+    detailRecord: null,
     prefGood: '',
     prefBad: '',
     prefExcellent: '',
@@ -317,8 +318,11 @@ Page({
 
   toggleDetail(e) {
     const id = e.currentTarget.dataset.id;
-    this.setData({ expandedId: this.data.expandedId === id ? null : id });
+    const rec = this.data.records.find(r => r.id === id);
+    if (rec) this.setData({ detailRecord: rec });
   },
+
+  closeDetail() { this.setData({ detailRecord: null }); },
 
   // 复购 / 改偏好
   async repurchase(e) {

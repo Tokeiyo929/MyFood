@@ -26,7 +26,8 @@ Page({
         (map[parent] = map[parent] || []).push({
           id: item.id,
           name: item.name,
-          img: food ? food.image_path : ''
+          img: food ? food.image_path : '',
+          hasFood: foods.some(f => (f.categories || []).includes(item.name))
         });
       });
       const groups = Object.keys(map).map(parent => ({ parent, items: map[parent] }));
