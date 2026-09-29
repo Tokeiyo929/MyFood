@@ -26,11 +26,12 @@
         </view>
       </view>
       <view class="pref-box">
-        <text class="label">偏好</text>
         <view class="preference-panel">
-          <text class="pref-label">{{preferenceLabel}}</text>
           <slider value="{{prefLevel}}" min="{{preferenceOptions[0].level}}" max="{{preferenceOptions[preferenceOptions.length-1].level}}" step="{{prefStep}}" bindchange="onPreferenceChange" activeColor="#66508f" vertical block-size="8" class="pref-slider" />
-          <text class="pref-face">{{preferenceFace}}</text>
+          <view class="pref-side">
+            <text class="pref-label">{{preferenceLabel}}</text>
+            <text class="pref-face">{{preferenceFace}}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -69,7 +70,7 @@
           </view>
         </view>
         <view wx:if="{{expandedId === item.id}}" class="detail">
-          <view wx:if="{{item.reason}}">理由：{{item.reason}}</view>
+          <view wx:if="{{item.reason}}" class="{{item.preference === prefBad ? 'bad-reason' : item.preference === prefExcellent ? 'good-reason' : ''}}">{{item.preference === prefBad ? '难吃理由' : item.preference === prefExcellent ? '推荐理由' : '理由'}}：{{item.reason}}</view>
           <view wx:if="{{item.price}}">价格：{{item.price}}</view>
           <view wx:if="{{item.categories.length}}">类别：{{item.categories}}</view>
           <view class="repurchase-actions" wx:if="{{item.pickable}}">

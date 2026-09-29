@@ -1,21 +1,21 @@
 .page { padding: 12px; padding-bottom: 20px; }
 .card { background: #fff; margin-bottom: 16px; padding: 4px 0 12px; }
-.top-row { display: flex; gap: 10px; padding: 4px 16px; }
-.img-box { flex: 0 0 90px; }
+.top-row { display: flex; gap: 10px; padding: 4px 12px; }
+.img-box { flex: 0 0 88px; }
 .name-brand { flex: 1; }
 .suggestions { display: flex; flex-wrap: wrap; padding: 4px 16px; }
 .chips { display: flex; flex-wrap: wrap; margin: 4px 16px; }
-.flavor-pref-row { display: flex; align-items: center; padding: 4px 16px; }
+.flavor-pref-row { display: flex; align-items: flex-start; padding: 4px 12px; gap: 8px; }
 .flavor-box { flex: 0 0 160px; }
-.pref-box { flex: 1; padding-left: 8px; }
-.label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
-.wheel-wrap { position: relative; }
-.flavor-canvas { width: 150px; height: 150px; }
-.reset-btn { position: absolute; top: 0; left: 0; z-index: 5; color: #66508f; font-size: 20px; padding: 2px 6px; }
-.preference-panel { display: flex; align-items: center; gap: 8px; flex-direction: column; }
-.pref-label { font-size: 13px; }
-.pref-face { font-size: 24px; }
-.pref-slider { height: 140px; }
+.wheel-wrap { position: relative; width: 160px; height: 160px; }
+.flavor-canvas { width: 160px; height: 160px; }
+.reset-btn { position: absolute; top: 0; left: 0; z-index: 5; color: #66508f; font-size: 18px; padding: 2px 6px; }
+.pref-box { flex: 1; display: flex; justify-content: center; padding-top: 6px; }
+.preference-panel { display: flex; align-items: center; gap: 8px; }
+.pref-slider { height: 150px; width: 40px; }
+.pref-side { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pref-label { font-size: 12px; }
+.pref-face { font-size: 26px; }
 .ing-row { display: flex; padding: 0 8px; }
 .records { margin-top: 8px; }
 .record { margin-bottom: 10px; }
@@ -33,7 +33,7 @@
 .item-label { font-size: 12px; color: #555; margin-right: 4px; }
 .repurchase-count { color: #999; font-size: 11px; margin-top: 4px; display: block; }
 .detail { padding: 10px 14px; background: #fff; border-top: 1px solid #f0f0f0; }
+.good-reason { color: #2c9e5f; }
+.bad-reason { color: #c0504d; }
 .repurchase-actions { display: flex; gap: 8px; margin-top: 8px; }
 .loading-hint { text-align: center; color: #999; padding: 14px 0; }
-.reason-display-good { color: #2c9e5f; }
-.reason-display-bad { color: #c0504d; }

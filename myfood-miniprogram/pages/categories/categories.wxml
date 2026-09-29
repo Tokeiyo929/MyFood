@@ -3,7 +3,7 @@
     <van-cell title="{{group.parent}}" is-link
       value="{{expandedParent === group.parent ? '收起' : '展开'}}" bindtap="toggleGroup" data-parent="{{group.parent}}" />
     <view wx:if="{{expandedParent === group.parent}}" class="group-grid">
-      <view class="group-item" wx:for="{{group.items}}" wx:for-item="item" wx:key="id"
+      <view class="group-item {{item.img ? 'has-img' : ''}}" wx:for="{{group.items}}" wx:for-item="item" wx:key="id"
         bindtap="openCategory" data-name="{{item.name}}" data-parent="{{group.parent}}">
         <image wx:if="{{item.img}}" src="{{item.img}}" class="group-item-img" mode="aspectFill" />
         <text class="group-item-name">{{item.name}}</text>
